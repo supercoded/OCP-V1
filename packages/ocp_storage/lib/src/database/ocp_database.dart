@@ -3,7 +3,9 @@ import 'package:ocp_storage/src/schemas/contact_schema.dart';
 import 'package:ocp_storage/src/schemas/conversation_schema.dart';
 import 'package:ocp_storage/src/schemas/device_schema.dart';
 import 'package:ocp_storage/src/schemas/identity_schema.dart';
+import 'package:ocp_storage/src/schemas/map_region_schema.dart';
 import 'package:ocp_storage/src/schemas/message_schema.dart';
+import 'package:ocp_storage/src/schemas/node_position_schema.dart';
 import 'package:ocp_storage/src/schemas/workspace_schema.dart';
 
 /// Thin facade over the Isar database.
@@ -20,7 +22,9 @@ class OcpDatabase {
         ConversationSchemaSchema,
         DeviceSchemaSchema,
         IdentitySchemaSchema,
+        MapRegionSchemaSchema,
         MessageSchemaSchema,
+        NodePositionSchemaSchema,
         WorkspaceSchemaSchema,
       ],
       directory: directoryPath,
@@ -37,7 +41,9 @@ class OcpDatabase {
         ConversationSchemaSchema,
         DeviceSchemaSchema,
         IdentitySchemaSchema,
+        MapRegionSchemaSchema,
         MessageSchemaSchema,
+        NodePositionSchemaSchema,
         WorkspaceSchemaSchema,
       ],
       directory: '',
@@ -58,6 +64,11 @@ class OcpDatabase {
   IsarCollection<IdentitySchema> get identities => _isar.identitySchemas;
 
   IsarCollection<MessageSchema> get messages => _isar.messageSchemas;
+
+  IsarCollection<NodePositionSchema> get nodePositions =>
+      _isar.nodePositionSchemas;
+
+  IsarCollection<MapRegionSchema> get mapRegions => _isar.mapRegionSchemas;
 
   IsarCollection<WorkspaceSchema> get workspaces => _isar.workspaceSchemas;
 

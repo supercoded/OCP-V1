@@ -3,7 +3,9 @@ import 'package:ocp_storage/src/schemas/contact_schema.dart';
 import 'package:ocp_storage/src/schemas/conversation_schema.dart';
 import 'package:ocp_storage/src/schemas/device_schema.dart';
 import 'package:ocp_storage/src/schemas/identity_schema.dart';
+import 'package:ocp_storage/src/schemas/map_region_schema.dart';
 import 'package:ocp_storage/src/schemas/message_schema.dart';
+import 'package:ocp_storage/src/schemas/node_position_schema.dart';
 import 'package:ocp_storage/src/schemas/workspace_schema.dart';
 import 'package:ocp_storage/src/database/ocp_database.dart';
 
@@ -106,6 +108,71 @@ class OcpStores {
   Future<void> deleteMessage(Id isarId) async {
     await _database.isar.writeTxn(() async {
       await _database.messages.delete(isarId);
+    });
+  }
+
+  Future<void> putNodePosition(NodePositionSchema schema) async {
+    await _database.isar.writeTxn(() async {
+      await _database.nodePositions.put(schema);
+    });
+  }
+
+  /// Most recent [limit] fixes for [nodeId], newest first.
+  Future<List<NodePositionSchema>> positionsForNode(
+    String nodeId, {
+    int limit = 50,
+  }) =>
+      _database.nodePositions
+          .filter()
+          .nodeIdEqualTo(nodeId)
+          .sortByTimestampDesc()
+          .limit(limit)
+          .findAll();
+
+  Future<NodePositionSchema?> latestPositionForNode(String nodeId) =>
+      _database.nodePositions
+          .filter()
+          .nodeIdEqualTo(nodeId)
+          .sortByTimestampDesc()
+          .findFirst();
+
+  Future<List<NodePositionSchema>> allLatestPositions() async {
+    final all = await _database.nodePositions.where().findAll();
+    final latest = <String, NodePositionSchema>{};
+    for (final p in all) {
+      final current = latest[p.nodeId];
+      if (current == null || p.timestamp.isAfter(current.timestamp)) {
+        latest[p.nodeId] = p;
+      }
+    }
+    return latest.values.toList();
+  }
+
+  /// Retention hook (Phase 2): drop fixes older than [cutoff].
+  Future<int> prunePositionsBefore(DateTime cutoff) {
+    return _database.isar.writeTxn(() {
+      return _database.nodePositions
+          .filter()
+          .timestampLessThan(cutoff)
+          .deleteAll();
+    });
+  }
+
+  Future<MapRegionSchema?> mapRegionById(String id) =>
+      _database.mapRegions.getByRegionId(id);
+
+  Future<List<MapRegionSchema>> allMapRegions() =>
+      _database.mapRegions.where().findAll();
+
+  Future<void> putMapRegion(MapRegionSchema schema) async {
+    await _database.isar.writeTxn(() async {
+      await _database.mapRegions.put(schema);
+    });
+  }
+
+  Future<void> deleteMapRegion(Id isarId) async {
+    await _database.isar.writeTxn(() async {
+      await _database.mapRegions.delete(isarId);
     });
   }
 
