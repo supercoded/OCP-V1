@@ -81,4 +81,72 @@ void main() {
     expect(core.securityService.registerSequence(1), isTrue);
     expect(core.securityService.registerSequence(1), isFalse);
   });
+
+  test('location service ingests position history and emits updates', () async {
+    final emitted = <NodePosition>[];
+    final sub = core.locationService.positionUpdates.listen(emitted.add);
+
+    final base = DateTime.utc(2026);
+    for (var i = 0; i < 3; i++) {
+      await core.locationService.ingest(
+        NodePosition(
+          nodeId: 'node-a',
+          latitude: 37.0 + i * 0.001,
+          longitude: -122.0,
+          timestamp: base.add(Duration(seconds: i)),
+        ),
+      );
+    }
+
+    // Let the broadcast stream flush.
+    await Future<void>.delayed(Duration.zero);
+    expect(emitted, hasLength(3));
+
+    final history = await core.locationService.history('node-a');
+    expect(history, hasLength(3));
+
+    final latest = await core.locationService.latest('node-a');
+    expect(latest!.latitude, closeTo(37.002, 1e-9));
+
+    await sub.cancel();
+  });
+
+  test('location service prunes old fixes', () async {
+    final base = DateTime.utc(2026);
+    for (var i = 0; i < 4; i++) {
+      await core.locationService.ingest(
+        NodePosition(
+          nodeId: 'node-b',
+          latitude: 1,
+          longitude: 1,
+          timestamp: base.add(Duration(minutes: i)),
+        ),
+      );
+    }
+    final removed =
+        await core.locationService.prune(base.add(const Duration(minutes: 2)));
+    expect(removed, 2);
+    expect(await core.locationService.history('node-b'), hasLength(2));
+  });
+
+  test('map region repository stores tile-pack metadata', () async {
+    await core.mapRegions.save(
+      MapRegion(
+        regionId: 'bay-area',
+        minLatitude: 37,
+        minLongitude: -123,
+        maxLatitude: 38,
+        maxLongitude: -122,
+        minZoom: 8,
+        maxZoom: 14,
+        style: 'osm',
+        sizeBytes: 2048,
+        downloadedAt: DateTime.utc(2026),
+        storagePath: '/tiles/bay-area',
+      ),
+    );
+    final region = await core.mapRegions.findById('bay-area');
+    expect(region!.maxZoom, 14);
+    expect(await core.mapRegions.findAll(), hasLength(1));
+  });
 }
