@@ -1,0 +1,17 @@
+name: ocp_maps
+description: Offline tile-cache math and self-centered sonar/radar projection engine (pure logic).
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  meta: ^1.16.0
+
+dev_dependencies:
+  flutter_lints: ^5.0.0
+  mock_position_feed:
+    path: ../../tools/mock_position_feed
+  test: ^1.25.8
