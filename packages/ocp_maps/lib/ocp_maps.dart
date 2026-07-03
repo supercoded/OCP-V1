@@ -1,7 +1,7 @@
 /// OCP Maps — offline tile-cache math and self-centered sonar/radar projection.
 ///
 /// Pure logic, no Flutter widgets. See `specs/maps-spec.md`.
-library ocp_maps;
+library;
 
 export 'src/geo/geo_math.dart';
 export 'src/geo/geo_point.dart';
