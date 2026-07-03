@@ -1,0 +1,17 @@
+{
+  "name": "ocp-v1-offline-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Offline-first phone and desktop communication app scaffold for Meshtastic-compatible radios.",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "build:desktop": "bash scripts/build-desktop.sh",
+    "build:android": "bash scripts/build-android.sh",
+    "validate:field": "bash scripts/field-validation.sh"
+  }
+}

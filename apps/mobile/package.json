@@ -1,0 +1,13 @@
+{
+  "name": "@ocp/mobile-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mobile app scaffold for offline Meshtastic-compatible messaging.",
+  "type": "module",
+  "scripts": {
+    "bundle:logic": "node src/app.js"
+  },
+  "dependencies": {
+    "@ocp/offline-core": "0.1.0"
+  }
+}

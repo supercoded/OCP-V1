@@ -1,0 +1,12 @@
+{
+  "name": "@ocp/desktop-app",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node src/main.js"
+  },
+  "dependencies": {
+    "@ocp/offline-core": "0.1.0"
+  }
+}

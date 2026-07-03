@@ -16,6 +16,34 @@ Project authority and requirements live in [`specs/`](specs/):
 
 See [specs/README.md](specs/README.md) for the full document index and source-of-truth priority order.
 
+## Offline App Implementation Scaffold
+
+This repository now includes a first-pass implementation scaffold for the offline-first downloadable app:
+
+- Shared core: [`packages/offline-core`](packages/offline-core)
+  - Transport adapters (BLE/Serial/TCP)
+  - PhoneAPI-style protocol client (handshake, NodeDB/channel sync, ACK/retry)
+  - Offline JSON storage with encrypted channel keys at rest
+- App shells:
+  - [`apps/desktop`](apps/desktop)
+  - [`apps/mobile`](apps/mobile)
+- Build and validation scripts:
+  - `scripts/build-desktop.sh`
+  - `scripts/build-android.sh`
+  - `scripts/field-validation.sh`
+- Plan decision records:
+  - [`docs/offline-app/target-order.md`](docs/offline-app/target-order.md)
+  - [`docs/offline-app/mvp-scope.md`](docs/offline-app/mvp-scope.md)
+
+### Quick start
+
+```bash
+npm test
+npm run build:desktop
+npm run build:android
+npm run validate:field
+```
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
