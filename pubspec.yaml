@@ -13,10 +13,12 @@ workspace:
   - packages/ocp_odp
   - packages/ocp_onp
   - packages/ocp_transport
+  - packages/ocp_maps
   - packages/ocp_plugin_api
   - packages/ocp_bridge_meshtastic
   - packages/ocp_plugin_example
   - tools/mock_device
+  - tools/mock_position_feed
   - tools/benchmark
 
 melos:
