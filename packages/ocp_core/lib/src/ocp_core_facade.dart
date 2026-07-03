@@ -7,14 +7,7 @@ import 'package:ocp_core/src/repositories/isar/isar_message_repository.dart';
 import 'package:ocp_core/src/repositories/isar/isar_node_position_repository.dart';
 import 'package:ocp_core/src/repositories/isar/isar_workspace_repository.dart';
 import 'package:ocp_core/src/repositories/repositories.dart';
-import 'package:ocp_core/src/services/identity_service.dart';
-import 'package:ocp_core/src/services/location_service.dart';
-import 'package:ocp_core/src/services/messaging_service.dart';
-import 'package:ocp_core/src/services/notification_service.dart';
-import 'package:ocp_core/src/services/security_service.dart';
-import 'package:ocp_core/src/services/session_service.dart';
 import 'package:ocp_core/src/services/services.dart';
-import 'package:ocp_core/src/services/workspace_service.dart';
 import 'package:ocp_storage/ocp_storage.dart';
 
 /// Composition root for OCP Core services and repositories.

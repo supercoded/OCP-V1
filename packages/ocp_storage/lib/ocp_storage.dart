@@ -1,5 +1,5 @@
 /// OCP local storage — Isar schemas and database facade.
-library ocp_storage;
+library;
 
 export 'src/database/ocp_database.dart';
 export 'src/stores/ocp_stores.dart';

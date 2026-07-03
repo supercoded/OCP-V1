@@ -7,9 +7,9 @@ environment:
   sdk: ^3.5.0
 
 dependencies:
+  cupertino_icons: ^1.0.8
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.8
   mock_position_feed:
     path: ../../tools/mock_position_feed
   ocp_core:
@@ -29,9 +29,9 @@ dependencies:
   path_provider: ^2.1.5
 
 dev_dependencies:
+  flutter_lints: ^5.0.0
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
 
 flutter:
   uses-material-design: true

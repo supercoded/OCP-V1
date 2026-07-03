@@ -12,5 +12,5 @@ dependencies:
     path: ../ocp_odp
 
 dev_dependencies:
-  test: ^1.25.8
   flutter_lints: ^5.0.0
+  test: ^1.25.8

@@ -1,4 +1,4 @@
 /// Example OCP plugin.
-library ocp_plugin_example;
+library;
 
 export 'src/example_plugin.dart';

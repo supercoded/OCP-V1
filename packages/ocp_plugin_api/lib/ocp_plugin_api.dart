@@ -1,5 +1,5 @@
 /// OCP Plugin SDK API contracts.
-library ocp_plugin_api;
+library;
 
 export 'src/ocp_plugin.dart';
 export 'src/plugin_capability.dart';

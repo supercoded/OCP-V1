@@ -1,5 +1,5 @@
 /// OCP Core — repositories and services.
-library ocp_core;
+library;
 
 export 'src/ocp_core_facade.dart';
 export 'src/errors/ocp_exception.dart';

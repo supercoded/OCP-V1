@@ -1,4 +1,4 @@
 /// Meshtastic bridge — translates native frames to ODP.
-library ocp_bridge_meshtastic;
+library;
 
 export 'src/meshtastic_bridge.dart';

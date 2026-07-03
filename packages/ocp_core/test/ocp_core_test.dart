@@ -1,4 +1,3 @@
-import 'package:isar/isar.dart';
 import 'package:ocp_core/ocp_core.dart';
 import 'package:ocp_storage/ocp_storage.dart';
 import 'package:ocp_storage/src/testing/isar_test_init.dart';

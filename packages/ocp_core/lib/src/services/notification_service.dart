@@ -1,7 +1,5 @@
 import 'package:logging/logging.dart';
 import 'package:ocp_core/src/logging/ocp_logger.dart';
-import 'package:ocp_core/src/models/message.dart';
-import 'package:ocp_core/src/repositories/message_repository.dart';
 
 /// In-app notification event.
 class OcpNotification {

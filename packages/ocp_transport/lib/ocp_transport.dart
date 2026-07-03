@@ -1,5 +1,5 @@
 /// OCP transport layer abstractions.
-library ocp_transport;
+library;
 
 export 'src/ocp_transport.dart';
 export 'src/transports/ble_transport.dart';

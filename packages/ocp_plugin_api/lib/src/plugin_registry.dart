@@ -1,5 +1,4 @@
 import 'package:ocp_plugin_api/src/ocp_plugin.dart';
-import 'package:ocp_plugin_api/src/plugin_capability.dart';
 
 /// Installs, uninstalls, and looks up plugins by capability.
 class PluginRegistry {
