@@ -16,4 +16,8 @@ abstract class NodePositionRepository {
 
   /// Retention hook: drops fixes older than [cutoff], returns the count removed.
   Future<int> pruneBefore(DateTime cutoff);
+
+  /// Retention hook: keeps only the newest [maxSamples] fixes for [nodeId],
+  /// returns the count removed.
+  Future<int> trimToLatest(String nodeId, int maxSamples);
 }

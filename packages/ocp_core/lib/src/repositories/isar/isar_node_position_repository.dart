@@ -36,6 +36,10 @@ class IsarNodePositionRepository implements NodePositionRepository {
   Future<int> pruneBefore(DateTime cutoff) =>
       _stores.prunePositionsBefore(cutoff);
 
+  @override
+  Future<int> trimToLatest(String nodeId, int maxSamples) =>
+      _stores.trimNodePositions(nodeId, maxSamples);
+
   NodePosition _toModel(db.NodePositionSchema schema) => NodePosition(
         nodeId: schema.nodeId,
         latitude: schema.lat,

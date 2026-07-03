@@ -158,6 +158,22 @@ class OcpStores {
     });
   }
 
+  /// Retention hook (Phase 2): keep only the newest [maxSamples] fixes for
+  /// [nodeId], deleting the rest. Returns the count removed.
+  Future<int> trimNodePositions(String nodeId, int maxSamples) async {
+    if (maxSamples < 0) return 0;
+    final ordered = await _database.nodePositions
+        .filter()
+        .nodeIdEqualTo(nodeId)
+        .sortByTimestampDesc()
+        .findAll();
+    if (ordered.length <= maxSamples) return 0;
+    final staleIds = ordered.sublist(maxSamples).map((p) => p.id).toList();
+    return _database.isar.writeTxn(
+      () => _database.nodePositions.deleteAll(staleIds),
+    );
+  }
+
   Future<MapRegionSchema?> mapRegionById(String id) =>
       _database.mapRegions.getByRegionId(id);
 

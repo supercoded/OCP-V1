@@ -128,6 +128,62 @@ void main() {
     expect(await core.locationService.history('node-b'), hasLength(2));
   });
 
+  test('location retention trims to max samples per node', () async {
+    final service = LocationService(
+      core.positions,
+      retentionPolicy: const PositionRetentionPolicy(maxSamplesPerNode: 2),
+    );
+    final base = DateTime.utc(2026);
+    for (var i = 0; i < 5; i++) {
+      await service.ingest(
+        NodePosition(
+          nodeId: 'r',
+          latitude: 1,
+          longitude: 1,
+          timestamp: base.add(Duration(seconds: i)),
+        ),
+      );
+    }
+    final history = await service.history('r');
+    expect(history, hasLength(2));
+    expect(
+      history.first.timestamp.toUtc(),
+      base.add(const Duration(seconds: 4)),
+    );
+    await service.dispose();
+  });
+
+  test('location retention drops fixes older than max age', () async {
+    final now = DateTime.utc(2026, 6, 1);
+    final service = LocationService(
+      core.positions,
+      retentionPolicy: const PositionRetentionPolicy(
+        maxSamplesPerNode: null,
+        maxAge: Duration(hours: 1),
+      ),
+      clock: () => now,
+    );
+    await service.ingest(
+      NodePosition(
+        nodeId: 'aged',
+        latitude: 1,
+        longitude: 1,
+        timestamp: now.subtract(const Duration(hours: 2)),
+      ),
+    );
+    await service.ingest(
+      NodePosition(
+        nodeId: 'aged',
+        latitude: 1,
+        longitude: 1,
+        timestamp: now.subtract(const Duration(minutes: 10)),
+      ),
+    );
+    final history = await service.history('aged');
+    expect(history, hasLength(1));
+    await service.dispose();
+  });
+
   test('map region repository stores tile-pack metadata', () async {
     await core.mapRegions.save(
       MapRegion(

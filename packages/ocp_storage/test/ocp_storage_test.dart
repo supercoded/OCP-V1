@@ -95,6 +95,28 @@ void main() {
     expect(remaining, hasLength(2));
   });
 
+  test('trims node history to the newest N samples', () async {
+    final stores = OcpStores(database);
+    final base = DateTime.utc(2026);
+    for (var i = 0; i < 6; i++) {
+      await stores.putNodePosition(
+        NodePositionSchema()
+          ..nodeId = 'node-a'
+          ..lat = 1
+          ..lon = 1
+          ..timestamp = base.add(Duration(minutes: i)),
+      );
+    }
+    final removed = await stores.trimNodePositions('node-a', 2);
+    expect(removed, 4);
+    final remaining = await stores.positionsForNode('node-a');
+    expect(remaining, hasLength(2));
+    expect(
+      remaining.first.timestamp.toUtc(),
+      base.add(const Duration(minutes: 5)),
+    );
+  });
+
   test('tracks map region tile-pack metadata', () async {
     final stores = OcpStores(database);
     await stores.putMapRegion(
