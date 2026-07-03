@@ -3,6 +3,7 @@ import 'package:ocp_app/app/ocp_app_coordinator.dart';
 import 'package:ocp_app/workspaces/dashboard/dashboard_workspace.dart';
 import 'package:ocp_app/workspaces/devices/devices_workspace.dart';
 import 'package:ocp_app/workspaces/diagnostics/diagnostics_workspace.dart';
+import 'package:ocp_app/workspaces/maps/maps_workspace.dart';
 import 'package:ocp_app/workspaces/messaging/messaging_workspace.dart';
 import 'package:ocp_app/workspaces/network/network_workspace.dart';
 
@@ -26,6 +27,7 @@ class _OcpAppShellState extends State<OcpAppShell> {
       MessagingWorkspace(coordinator: widget.coordinator),
       NetworkWorkspace(coordinator: widget.coordinator),
       DevicesWorkspace(coordinator: widget.coordinator),
+      MapsWorkspace(coordinator: widget.coordinator),
       DiagnosticsWorkspace(coordinator: widget.coordinator),
     ];
 
@@ -40,6 +42,7 @@ class _OcpAppShellState extends State<OcpAppShell> {
           NavigationDestination(icon: Icon(Icons.message), label: 'Messaging'),
           NavigationDestination(icon: Icon(Icons.hub), label: 'Network'),
           NavigationDestination(icon: Icon(Icons.devices), label: 'Devices'),
+          NavigationDestination(icon: Icon(Icons.radar), label: 'Maps'),
           NavigationDestination(
             icon: Icon(Icons.bug_report),
             label: 'Diagnostics',

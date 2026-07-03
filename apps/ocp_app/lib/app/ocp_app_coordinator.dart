@@ -1,4 +1,6 @@
+import 'package:mock_position_feed/mock_position_feed.dart';
 import 'package:ocp_core/ocp_core.dart';
+import 'package:ocp_maps/ocp_maps.dart';
 import 'package:ocp_plugin_api/ocp_plugin_api.dart';
 import 'package:ocp_plugin_example/ocp_plugin_example.dart';
 import 'package:ocp_storage/ocp_storage.dart';
@@ -9,10 +11,19 @@ class OcpAppCoordinator {
   OcpAppCoordinator._({
     required this.core,
     required this.plugins,
+    required this.positionFeed,
+    required this.selfPosition,
   });
 
   final OcpCore core;
   final PluginRegistry plugins;
+
+  /// MVP-only synthetic node feed driving the Maps workspace before real GPS
+  /// hardware is wired in (see build-plan-v2 Phase 1).
+  final MockPositionFeed positionFeed;
+
+  /// Self position for the self-centered sonar view (base-camp for the demo).
+  final GeoPoint selfPosition;
 
   static Future<OcpAppCoordinator> create() async {
     final dir = await getApplicationDocumentsDirectory();
@@ -20,7 +31,12 @@ class OcpAppCoordinator {
     final core = await OcpCore.create(database);
     final plugins = PluginRegistry();
     await plugins.install(ExamplePlugin());
-    return OcpAppCoordinator._(core: core, plugins: plugins);
+    return OcpAppCoordinator._(
+      core: core,
+      plugins: plugins,
+      positionFeed: MockPositionFeed.demo(),
+      selfPosition: const GeoPoint(latitude: 37.7749, longitude: -122.4194),
+    );
   }
 
   Future<void> dispose() => core.dispose();

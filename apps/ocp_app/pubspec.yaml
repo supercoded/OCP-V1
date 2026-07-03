@@ -10,8 +10,12 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
+  mock_position_feed:
+    path: ../../tools/mock_position_feed
   ocp_core:
     path: ../../packages/ocp_core
+  ocp_maps:
+    path: ../../packages/ocp_maps
   ocp_odp:
     path: ../../packages/ocp_odp
   ocp_onp:
