@@ -9,6 +9,8 @@ Project authority and requirements live in [`specs/`](specs/):
 - [OCP Engineering Specification](specs/OCP_ENGINEERING_SPEC.md) — architecture and engineering standards
 - [Engineering Principles](specs/ENGINEERING_PRINCIPLES.md) (OCP-0003) — normative design principles
 - [Design Goals](specs/DESIGN_GOALS.md) (OCP-0004) — measurable design goals and review criteria
+- [Project Charter](specs/PROJECT_CHARTER.md) (OCP-0002) — governance, scope, and success criteria
+- [Product Requirements](specs/PRODUCT_REQUIREMENTS_SPECIFICATION_V2.md) (OCP-0005) — functional and non-functional requirements
 - [Project Vision](specs/PROJECT_VISION.md) — mission, scope, and success criteria
 - [Build Plan](specs/build-plan.md) — monorepo structure and phased build order
 

@@ -1,6 +1,5 @@
-# Product Requirements Specification (PRS)
+# Product Requirements Specification
 
-**Version:** Pending  
-**Status:** Not yet provided
+This file redirects to the canonical PRS document:
 
-This document is a placeholder. Add PRS v2.1 content here when available.
+**[PRODUCT_REQUIREMENTS_SPECIFICATION_V2.md](PRODUCT_REQUIREMENTS_SPECIFICATION_V2.md)** — Document ID OCP-0005, Version 2.0.0-draft

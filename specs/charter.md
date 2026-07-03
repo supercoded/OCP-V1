@@ -1,6 +1,5 @@
 # OCP Charter
 
-**Version:** Pending  
-**Status:** Not yet provided
+This file redirects to the canonical charter document:
 
-This document is a placeholder. Add Charter v1.0 content here when available.
+**[PROJECT_CHARTER.md](PROJECT_CHARTER.md)** — Document ID OCP-0002, Version 2.0.0-draft
