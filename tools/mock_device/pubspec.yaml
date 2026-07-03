@@ -1,0 +1,20 @@
+name: mock_device
+description: ODP simulator device for loopback testing.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  ocp_bridge_meshtastic:
+    path: ../../packages/ocp_bridge_meshtastic
+  ocp_odp:
+    path: ../../packages/ocp_odp
+  ocp_transport:
+    path: ../../packages/ocp_transport
+
+dev_dependencies:
+  flutter_lints: ^5.0.0
+  test: ^1.25.8

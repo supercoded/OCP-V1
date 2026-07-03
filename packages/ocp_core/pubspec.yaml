@@ -1,0 +1,19 @@
+name: ocp_core
+description: OCP Core — repositories and services (business logic).
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  logging: ^1.3.0
+  meta: ^1.16.0
+  ocp_storage:
+    path: ../ocp_storage
+
+dev_dependencies:
+  flutter_lints: ^5.0.0
+  mocktail: ^1.0.4
+  test: ^1.25.8
