@@ -10,6 +10,8 @@ environment:
 dependencies:
   ocp_odp:
     path: ../../packages/ocp_odp
+  ocp_transport:
+    path: ../../packages/ocp_transport
 
 dev_dependencies:
   flutter_lints: ^5.0.0

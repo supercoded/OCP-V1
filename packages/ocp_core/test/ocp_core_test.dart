@@ -42,6 +42,52 @@ void main() {
     expect(pending.first.status, MessageStatus.pending);
   });
 
+  test('messaging ingests inbound messages and emits updates', () async {
+    final updateFuture = core.messagingService.messageUpdates.first;
+
+    await core.messagingService.ingestIncoming(
+      messageId: 'in-1',
+      conversationId: 'c-1',
+      workspaceId: 'w-1',
+      senderId: 'radio',
+      body: 'hello from mesh',
+    );
+
+    final update = await updateFuture;
+    expect(update.body, 'hello from mesh');
+    expect(update.status, MessageStatus.delivered);
+    final history = await core.messagingService.conversationHistory('c-1');
+    expect(history, hasLength(1));
+  });
+
+  test('messaging flushPending sends queued messages in order', () async {
+    await core.messagingService.sendMessage(
+      messageId: 'p-1',
+      conversationId: 'c-1',
+      workspaceId: 'w-1',
+      senderId: 'local',
+      body: 'one',
+    );
+    await core.messagingService.sendMessage(
+      messageId: 'p-2',
+      conversationId: 'c-1',
+      workspaceId: 'w-1',
+      senderId: 'local',
+      body: 'two',
+    );
+
+    final sentBodies = <String>[];
+    final count = await core.messagingService.flushPending((message) async {
+      sentBodies.add(message.body);
+    });
+
+    expect(count, 2);
+    expect(sentBodies, ['one', 'two']);
+    expect(await core.messagingService.pendingMessages(), isEmpty);
+    final history = await core.messagingService.conversationHistory('c-1');
+    expect(history.every((m) => m.status == MessageStatus.sent), isTrue);
+  });
+
   test('workspace service assigns devices', () async {
     final now = DateTime.now().toUtc();
     final suffix = now.microsecondsSinceEpoch.toString();

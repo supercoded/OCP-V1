@@ -83,6 +83,8 @@ class OcpCore {
 
   Future<void> dispose() async {
     await locationService.dispose();
+    await messagingService.dispose();
+    await sessionService.dispose();
     await database.close();
   }
 }

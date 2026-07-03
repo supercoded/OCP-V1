@@ -67,4 +67,47 @@ void main() {
     expect(OdpPort.fromCode(0x99), OdpPort.unknown);
     expect(OdpDataPayload.decode(const []), isNull);
   });
+
+  test('feedIncoming emits port-tagged DATA frames when connected', () async {
+    final connection = OdpConnection();
+    connection.beginHandshake();
+    connection.feedIncoming(codec.encodeHelloAck(sequence: 1, selectedVersion: 1));
+    expect(connection.state, OdpState.connected);
+
+    final payloadFuture = connection.dataFrames.first;
+    final inbound = codec.encodePortData(
+      sequence: 99,
+      port: OdpPort.textMessage,
+      bytes: 'pong'.codeUnits,
+    );
+    connection.feedIncoming(inbound);
+
+    final received = await payloadFuture;
+    expect(received.port, OdpPort.textMessage);
+    connection.dispose();
+  });
+
+  test('reconnect runs a fresh handshake after error', () async {
+    final connection = OdpConnection();
+    connection.feedIncoming(const [0x00]); // decode failure → error
+    expect(connection.state, OdpState.error);
+
+    final ok = await connection.reconnect((outgoing) async {
+      if (codec.decode(outgoing)?.type == OdpMessageType.hello) {
+        return codec.encodeHelloAck(sequence: 1, selectedVersion: 1);
+      }
+      return codec.encode(
+        OdpFrame(
+          version: OdpCodec.protocolVersion,
+          type: OdpMessageType.capabilityRsp,
+          sequence: 1,
+          payload: const [1],
+        ),
+      );
+    });
+
+    expect(ok, isTrue);
+    expect(connection.state, OdpState.connected);
+    connection.dispose();
+  });
 }
