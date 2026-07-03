@@ -85,6 +85,33 @@ A tile file resolves to `<storagePath>/<z>/<x>/<y>.png`. A `MapRegion` "covers"
 a coordinate at zoom `z` when the coordinate falls inside its bounds and
 `minZoom <= z <= maxZoom`.
 
+### 3.2 Reading and rendering a pack
+
+- `FileTileProvider` (`ocp_maps`) reads tile bytes straight from the on-disk
+  pack — the offline read path, no network.
+- `TileGridPlanner` (`ocp_maps`) plans the `(2·radius+1)`-square grid of tiles
+  (and their pixel offsets) needed to render a self-centered viewport at a
+  given zoom, skipping tiles beyond the `2^z` world bounds.
+- The `Maps` workspace composes those with an `OfflineTileMapView` widget
+  (presentation only) that lays out `Image.memory` tiles and marks self at the
+  grid center.
+
+### 3.3 Multi-pack cache management
+
+`MapCacheService` (`ocp_core`) manages the set of packs:
+
+- **Coverage.** `coveringRegion(lat, lon, zoom)` resolves the smallest (most
+  specific) pack that covers a coordinate.
+- **Budget.** `enforceBudget(maxBytes)` evicts the oldest packs (by
+  `downloadedAt`) until total `sizeBytes` fits the budget.
+
+### 3.4 MVP demo pack
+
+Off-grid there is no tile server, so the MVP renders a small synthetic pack
+(`DemoTilePackBuilder`, app layer) to disk once and registers it as a
+`MapRegion`. This exercises the genuine generate → persist → read → render
+pipeline; a real build swaps the generator for a one-session online prefetch.
+
 ---
 
 ## 4. Sonar / Radar Projection

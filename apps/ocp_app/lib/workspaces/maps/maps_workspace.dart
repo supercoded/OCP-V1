@@ -4,6 +4,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:mock_position_feed/mock_position_feed.dart';
 import 'package:ocp_app/app/ocp_app_coordinator.dart';
+import 'package:ocp_app/maps/demo_tile_pack.dart';
+import 'package:ocp_app/widgets/offline_tile_map_view.dart';
 import 'package:ocp_app/widgets/sonar_view.dart';
 import 'package:ocp_core/ocp_core.dart';
 import 'package:ocp_maps/ocp_maps.dart';
@@ -37,6 +39,7 @@ class _MapsWorkspaceState extends State<MapsWorkspace> {
   MapsViewMode _mode = MapsViewMode.sonar;
   Map<String, List<SonarSample>> _samplesByNode = const {};
   bool _hasData = false;
+  Future<MapRegion>? _tilePack;
 
   MockPositionFeed get _feed => widget.coordinator.positionFeed;
 
@@ -46,6 +49,14 @@ class _MapsWorkspaceState extends State<MapsWorkspace> {
     _simTime = _feed.epoch;
     _advance();
     _timer = Timer.periodic(_tickInterval, (_) => _advance());
+  }
+
+  Future<MapRegion> _ensureTilePack() {
+    return _tilePack ??= DemoTilePackBuilder.ensure(
+      cache: widget.coordinator.core.mapCacheService,
+      baseDir: widget.coordinator.baseDirectory,
+      center: widget.coordinator.selfPosition,
+    );
   }
 
   @override
@@ -201,37 +212,33 @@ class _MapsWorkspaceState extends State<MapsWorkspace> {
   }
 
   Widget _buildTiles() {
-    return FutureBuilder<List<MapRegion>>(
-      future: widget.coordinator.core.mapRegions.findAll(),
+    return FutureBuilder<MapRegion>(
+      future: _ensureTilePack(),
       builder: (context, snapshot) {
-        final regions = snapshot.data ?? const [];
-        if (regions.isEmpty) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Text(
-                'No offline tile pack downloaded yet.\n\n'
-                'Tile packs are pre-fetched in one online session, then served '
-                'from disk off-grid. The sonar view already works offline from '
-                'live node positions.',
-                textAlign: TextAlign.center,
+        if (snapshot.hasError) {
+          return Center(child: Text('Tile pack error: ${snapshot.error}'));
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final region = snapshot.data!;
+        return Column(
+          children: [
+            Expanded(
+              child: OfflineTileMapView(
+                tileProvider: FileTileProvider(region.storagePath),
+                center: widget.coordinator.selfPosition,
+                zoom: region.maxZoom,
               ),
             ),
-          );
-        }
-        return ListView.builder(
-          itemCount: regions.length,
-          itemBuilder: (context, index) {
-            final region = regions[index];
-            return ListTile(
-              leading: const Icon(Icons.layers),
-              title: Text('${region.style} · z${region.minZoom}-${region.maxZoom}'),
-              subtitle: Text(
-                '${(region.sizeBytes / 1024).toStringAsFixed(0)} KiB · '
-                '${region.storagePath}',
-              ),
-            );
-          },
+            const SizedBox(height: 8),
+            Text(
+              'Offline pack "${region.regionId}" · z${region.maxZoom} · '
+              '${(region.sizeBytes / 1024).toStringAsFixed(0)} KiB · served from disk',
+              style: Theme.of(context).textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ],
         );
       },
     );

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:mock_position_feed/mock_position_feed.dart';
 import 'package:ocp_core/ocp_core.dart';
 import 'package:ocp_maps/ocp_maps.dart';
@@ -13,10 +15,14 @@ class OcpAppCoordinator {
     required this.plugins,
     required this.positionFeed,
     required this.selfPosition,
+    required this.baseDirectory,
   });
 
   final OcpCore core;
   final PluginRegistry plugins;
+
+  /// App storage root (used for the offline tile pack, among others).
+  final Directory baseDirectory;
 
   /// MVP-only synthetic node feed driving the Maps workspace before real GPS
   /// hardware is wired in (see build-plan-v2 Phase 1).
@@ -36,6 +42,7 @@ class OcpAppCoordinator {
       plugins: plugins,
       positionFeed: MockPositionFeed.demo(),
       selfPosition: const GeoPoint(latitude: 37.7749, longitude: -122.4194),
+      baseDirectory: dir,
     );
   }
 
