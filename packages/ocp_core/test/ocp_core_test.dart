@@ -184,6 +184,106 @@ void main() {
     await service.dispose();
   });
 
+  MapRegion buildRegion({
+    required String id,
+    required DateTime downloadedAt,
+    int sizeBytes = 1000,
+    double minLat = 0,
+    double maxLat = 10,
+    double minLon = 0,
+    double maxLon = 10,
+    int minZoom = 0,
+    int maxZoom = 16,
+  }) =>
+      MapRegion(
+        regionId: id,
+        minLatitude: minLat,
+        maxLatitude: maxLat,
+        minLongitude: minLon,
+        maxLongitude: maxLon,
+        minZoom: minZoom,
+        maxZoom: maxZoom,
+        style: 'osm',
+        sizeBytes: sizeBytes,
+        downloadedAt: downloadedAt,
+        storagePath: '/tiles/$id',
+      );
+
+  test('map cache resolves the covering pack for a coordinate', () async {
+    final base = DateTime.utc(2026);
+    await core.mapCacheService.register(
+      buildRegion(id: 'wide', downloadedAt: base, sizeBytes: 5000),
+    );
+    await core.mapCacheService.register(
+      buildRegion(
+        id: 'narrow',
+        downloadedAt: base,
+        sizeBytes: 1000,
+        minLat: 4,
+        maxLat: 6,
+        minLon: 4,
+        maxLon: 6,
+      ),
+    );
+    // Both cover (5,5); prefers the smaller (more specific) pack.
+    final covering = await core.mapCacheService.coveringRegion(
+      latitude: 5,
+      longitude: 5,
+      zoom: 12,
+    );
+    expect(covering?.regionId, 'narrow');
+
+    // Outside every pack.
+    final none = await core.mapCacheService.coveringRegion(
+      latitude: 50,
+      longitude: 50,
+      zoom: 12,
+    );
+    expect(none, isNull);
+
+    // Zoom out of range.
+    final tooZoomed = await core.mapCacheService.coveringRegion(
+      latitude: 5,
+      longitude: 5,
+      zoom: 20,
+    );
+    expect(tooZoomed, isNull);
+  });
+
+  test('map cache evicts oldest packs to honor the storage budget', () async {
+    final base = DateTime.utc(2026, 3);
+    await core.mapCacheService.register(
+      buildRegion(
+        id: 'oldest',
+        downloadedAt: base,
+        sizeBytes: 4000,
+      ),
+    );
+    await core.mapCacheService.register(
+      buildRegion(
+        id: 'middle',
+        downloadedAt: base.add(const Duration(days: 1)),
+        sizeBytes: 4000,
+      ),
+    );
+    await core.mapCacheService.register(
+      buildRegion(
+        id: 'newest',
+        downloadedAt: base.add(const Duration(days: 2)),
+        sizeBytes: 4000,
+      ),
+    );
+    expect(await core.mapCacheService.totalSizeBytes(), 12000);
+
+    final evicted = await core.mapCacheService.enforceBudget(9000);
+    expect(evicted, ['oldest']);
+    expect(await core.mapCacheService.totalSizeBytes(), 8000);
+    final remaining = (await core.mapCacheService.regions())
+        .map((r) => r.regionId)
+        .toSet();
+    expect(remaining, {'middle', 'newest'});
+  });
+
   test('map region repository stores tile-pack metadata', () async {
     await core.mapRegions.save(
       MapRegion(

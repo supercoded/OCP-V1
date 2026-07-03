@@ -24,6 +24,7 @@ class OcpCore {
     required this.workspaces,
     required this.identityService,
     required this.locationService,
+    required this.mapCacheService,
     required this.messagingService,
     required this.notificationService,
     required this.sessionService,
@@ -42,6 +43,7 @@ class OcpCore {
   final WorkspaceRepository workspaces;
   final IdentityService identityService;
   final LocationService locationService;
+  final MapCacheService mapCacheService;
   final MessagingService messagingService;
   final NotificationService notificationService;
   final SessionService sessionService;
@@ -70,6 +72,7 @@ class OcpCore {
       workspaces: workspaces,
       identityService: IdentityService(identities),
       locationService: LocationService(positions),
+      mapCacheService: MapCacheService(mapRegions),
       messagingService: MessagingService(messages, notifications),
       notificationService: notifications,
       sessionService: SessionService(),

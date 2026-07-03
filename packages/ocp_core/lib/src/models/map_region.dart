@@ -28,4 +28,13 @@ class MapRegion {
   final int sizeBytes;
   final DateTime downloadedAt;
   final String storagePath;
+
+  /// Whether this pack has tiles for (`latitude`, `longitude`) at [zoom].
+  bool covers(double latitude, double longitude, int zoom) =>
+      zoom >= minZoom &&
+      zoom <= maxZoom &&
+      latitude >= minLatitude &&
+      latitude <= maxLatitude &&
+      longitude >= minLongitude &&
+      longitude <= maxLongitude;
 }

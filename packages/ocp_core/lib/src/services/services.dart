@@ -3,6 +3,7 @@ library;
 
 export 'identity_service.dart';
 export 'location_service.dart';
+export 'map_cache_service.dart';
 export 'messaging_service.dart';
 export 'notification_service.dart';
 export 'security_service.dart';
