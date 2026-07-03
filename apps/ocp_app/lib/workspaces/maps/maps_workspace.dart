@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:mock_position_feed/mock_position_feed.dart';
 import 'package:ocp_app/app/ocp_app_coordinator.dart';
 import 'package:ocp_app/maps/demo_tile_pack.dart';
 import 'package:ocp_app/widgets/offline_tile_map_view.dart';
@@ -13,12 +12,8 @@ import 'package:ocp_maps/ocp_maps.dart';
 /// Which of the two Maps views is showing.
 enum MapsViewMode { sonar, tiles }
 
-/// Maps workspace — an offline tile map and a self-centered sonar/radar view,
-/// toggled over the same node data (build-plan-v2 §1, maps-spec §4).
-///
-/// For the Phase 1 MVP this is driven by the coordinator's synthetic
-/// [MockPositionFeed]; each tick ingests fixes through the core Location
-/// Manager, exercising the real storage path before GPS hardware exists.
+/// Maps workspace — sonar/tile views driven by wire-sourced [NodePosition]
+/// history in [LocationService] (mock-first: POSITION frames over ODP).
 class MapsWorkspace extends StatefulWidget {
   const MapsWorkspace({required this.coordinator, super.key});
 
@@ -29,26 +24,27 @@ class MapsWorkspace extends StatefulWidget {
 }
 
 class _MapsWorkspaceState extends State<MapsWorkspace> {
-  static const _tickInterval = Duration(seconds: 1);
-  static const _simStep = Duration(seconds: 5);
   static const _historyWindow = Duration(minutes: 2);
   static const _projector = SonarProjector();
 
-  Timer? _timer;
-  late DateTime _simTime;
+  StreamSubscription<NodePosition>? _positionSub;
+  StreamSubscription<SessionState>? _sessionSub;
   MapsViewMode _mode = MapsViewMode.sonar;
   Map<String, List<SonarSample>> _samplesByNode = const {};
   bool _hasData = false;
   Future<MapRegion>? _tilePack;
 
-  MockPositionFeed get _feed => widget.coordinator.positionFeed;
+  LocationService get _location => widget.coordinator.core.locationService;
 
   @override
   void initState() {
     super.initState();
-    _simTime = _feed.epoch;
-    _advance();
-    _timer = Timer.periodic(_tickInterval, (_) => _advance());
+    _positionSub = _location.positionUpdates.listen((_) => _refresh());
+    _sessionSub =
+        widget.coordinator.core.sessionService.stateChanges.listen((_) {
+      _refresh();
+    });
+    _refresh();
   }
 
   Future<MapRegion> _ensureTilePack() {
@@ -61,53 +57,48 @@ class _MapsWorkspaceState extends State<MapsWorkspace> {
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _positionSub?.cancel();
+    _sessionSub?.cancel();
     super.dispose();
   }
 
-  Future<void> _advance() async {
-    _simTime = _simTime.add(_simStep);
-    final windowStart = _simTime.subtract(_historyWindow);
-    final history = _feed.history(
-      from: windowStart.isBefore(_feed.epoch) ? _feed.epoch : windowStart,
-      to: _simTime,
-      interval: const Duration(seconds: 10),
-    );
+  Future<void> _refresh() async {
+    if (!widget.coordinator.hasActiveSession) {
+      if (!mounted) return;
+      setState(() {
+        _hasData = false;
+        _samplesByNode = const {};
+      });
+      return;
+    }
 
-    // Ingest the latest fix per node through the real Location Manager.
-    for (final samples in history.values) {
-      if (samples.isEmpty) continue;
-      final latest = samples.last;
-      await widget.coordinator.core.locationService.ingest(
-        NodePosition(
-          nodeId: latest.nodeId,
-          latitude: latest.latitude,
-          longitude: latest.longitude,
-          altitude: latest.altitudeMeters,
-          heading: latest.headingDegrees,
-          speedMps: latest.speedMps,
-          timestamp: latest.timestamp,
-        ),
-      );
+    final now = DateTime.now().toUtc();
+    final cutoff = now.subtract(_historyWindow);
+    final latest = await _location.latestPerNode();
+    final samples = <String, List<SonarSample>>{};
+
+    for (final fix in latest) {
+      if (fix.timestamp.isBefore(cutoff)) continue;
+      final history = await _location.history(fix.nodeId, limit: 30);
+      final windowed = history.where((p) => !p.timestamp.isBefore(cutoff)).toList();
+      if (windowed.isEmpty) continue;
+      samples[fix.nodeId] = [
+        for (final p in windowed)
+          SonarSample(
+            nodeId: p.nodeId,
+            label: p.nodeId,
+            position: GeoPoint(latitude: p.latitude, longitude: p.longitude),
+            timestamp: p.timestamp,
+            headingDegrees: p.heading,
+            speedMps: p.speedMps,
+          ),
+      ];
     }
 
     if (!mounted) return;
     setState(() {
-      _hasData = true;
-      _samplesByNode = {
-        for (final entry in history.entries)
-          entry.key: [
-            for (final p in entry.value)
-              SonarSample(
-                nodeId: p.nodeId,
-                position:
-                    GeoPoint(latitude: p.latitude, longitude: p.longitude),
-                timestamp: p.timestamp,
-                headingDegrees: p.headingDegrees,
-                speedMps: p.speedMps,
-              ),
-          ],
-      };
+      _hasData = samples.isNotEmpty;
+      _samplesByNode = samples;
     });
   }
 
@@ -170,6 +161,17 @@ class _MapsWorkspaceState extends State<MapsWorkspace> {
   }
 
   Widget _buildSonar() {
+    if (!widget.coordinator.hasActiveSession) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'Pair a device in Devices to receive live POSITION frames over ODP.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
     if (!_hasData) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -181,12 +183,13 @@ class _MapsWorkspaceState extends State<MapsWorkspace> {
           constraints.maxWidth / 2,
           (constraints.maxHeight - 24) / 2,
         );
+        final now = DateTime.now().toUtc();
         final scene = _projector.project(
           self: widget.coordinator.selfPosition,
           samplesByNode: _samplesByNode,
           center: center,
           radiusPixels: radius,
-          now: _simTime,
+          now: now,
         );
         return Column(
           children: [
@@ -201,7 +204,7 @@ class _MapsWorkspaceState extends State<MapsWorkspace> {
             ),
             const SizedBox(height: 8),
             Text(
-              '${scene.blips.length} node(s) tracked · '
+              '${scene.blips.length} node(s) over ODP · '
               'range ${_formatRange(scene.maxRangeMeters)} · north-up',
               style: Theme.of(context).textTheme.bodySmall,
             ),

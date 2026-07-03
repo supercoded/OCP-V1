@@ -8,6 +8,8 @@ environment:
   sdk: ^3.5.0
 
 dependencies:
+  ocp_bridge_meshtastic:
+    path: ../../packages/ocp_bridge_meshtastic
   ocp_odp:
     path: ../../packages/ocp_odp
   ocp_transport:

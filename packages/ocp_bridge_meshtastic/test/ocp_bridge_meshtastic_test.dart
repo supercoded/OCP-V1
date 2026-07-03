@@ -60,4 +60,17 @@ void main() {
   test('rejects malformed position payloads', () {
     expect(MeshtasticBridge.decodePositionPayload(const [1, 2, 3]), isNull);
   });
+
+  test('round-trips optional nodeId tail on position payloads', () {
+    const position = MeshtasticPosition(latitude: 1, longitude: 2);
+    final bytes = MeshtasticBridge.encodePositionPayload(
+      position,
+      nodeId: 'hiker',
+    );
+    expect(MeshtasticBridge.decodePositionNodeId(bytes), 'hiker');
+    expect(
+      MeshtasticBridge.decodePositionPayload(bytes)!.latitude,
+      closeTo(1, 1e-7),
+    );
+  });
 }

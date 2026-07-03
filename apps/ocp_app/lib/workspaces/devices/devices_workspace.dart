@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mock_device/mock_device.dart';
 import 'package:ocp_app/app/ocp_app_coordinator.dart';
 import 'package:ocp_app/pairing/device_pairing_controller.dart';
 import 'package:ocp_core/ocp_core.dart';
@@ -16,12 +15,13 @@ class DevicesWorkspace extends StatefulWidget {
 }
 
 class _DevicesWorkspaceState extends State<DevicesWorkspace> {
-  static const _workspaceId = 'default';
+  static const _workspaceId = OcpAppCoordinator.defaultWorkspaceId;
 
   late final DevicePairingController _pairing;
   List<BleDiscoveredDevice> _discovered = const [];
   final Set<String> _pairingIds = {};
   bool _scanning = false;
+  int _listVersion = 0;
 
   @override
   void initState() {
@@ -50,34 +50,51 @@ class _DevicesWorkspaceState extends State<DevicesWorkspace> {
 
   Future<void> _pair(BleDiscoveredDevice device) async {
     setState(() => _pairingIds.add(device.id));
-    // MVP: run the ODP handshake against an in-process mock device. The real
-    // build swaps this exchange for BLE characteristic writes/notifications.
-    final mock = MockOdpDevice();
     final result = await _pairing.pair(
       device,
-      exchange: (outgoing) async => mock.handle(outgoing) ?? const <int>[],
+      exchange: widget.coordinator.pairingExchange,
     );
     if (!mounted) return;
-    setState(() => _pairingIds.remove(device.id));
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          result.success
-              ? 'Paired ${device.name}'
-              : 'Pairing failed: ${result.reason}',
-        ),
-      ),
+
+    var message = result.success
+        ? 'Paired ${device.name}'
+        : 'Pairing failed: ${result.reason}';
+
+    if (result.success && result.device != null) {
+      final connected = await widget.coordinator.connectPairedDevice(
+        result.device!,
+      );
+      if (connected) {
+        message = 'Paired and connected to ${device.name}';
+      } else {
+        message = 'Paired ${device.name}, but session connect failed';
+      }
+    }
+
+    setState(() {
+      _pairingIds.remove(device.id);
+      _listVersion++;
+    });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final session = widget.coordinator.core.sessionService;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            'Session: ${session.state.name} · '
+            '${session.activeDeviceId ?? 'none'}',
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
+          const SizedBox(height: 8),
           FilledButton.icon(
             onPressed: _scanning ? null : _scan,
             icon: _scanning
@@ -116,25 +133,37 @@ class _DevicesWorkspaceState extends State<DevicesWorkspace> {
           Text('Paired', style: Theme.of(context).textTheme.labelLarge),
           Expanded(
             child: FutureBuilder<List<Device>>(
+              key: ValueKey(_listVersion),
               future: widget.coordinator.core.devices.findByWorkspace(_workspaceId),
               builder: (context, snapshot) {
                 final devices = snapshot.data ?? const [];
                 if (devices.isEmpty) {
                   return const Padding(
                     padding: EdgeInsets.only(top: 12),
-                    child: Text('No paired devices yet.'),
+                    child: Text(
+                      'No paired devices yet. Pair a board to open an ODP '
+                      'session for messaging and live positions.',
+                    ),
                   );
                 }
                 return ListView.builder(
                   itemCount: devices.length,
                   itemBuilder: (context, index) {
                     final device = devices[index];
+                    final isActive = session.activeDeviceId == device.deviceId &&
+                        session.state == SessionState.connected;
                     return ListTile(
-                      leading: const Icon(Icons.router),
+                      leading: Icon(
+                        isActive ? Icons.link : Icons.router,
+                        color: isActive
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
                       title: Text(device.name),
                       subtitle: Text(
                         '${device.transportType} · '
-                        '${device.firmwareVersion ?? 'unknown fw'}',
+                        '${device.firmwareVersion ?? 'unknown fw'}'
+                        '${isActive ? ' · connected' : ''}',
                       ),
                     );
                   },

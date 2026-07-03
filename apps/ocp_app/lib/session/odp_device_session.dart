@@ -5,7 +5,7 @@ import 'package:ocp_core/ocp_core.dart';
 import 'package:ocp_odp/ocp_odp.dart';
 import 'package:ocp_transport/ocp_transport.dart';
 
-/// Mock-first device session: transport ↔ ODP ↔ bridge ↔ messaging.
+/// Mock-first device session: transport ↔ ODP ↔ bridge ↔ messaging/location.
 ///
 /// Owns the live connection after pairing. For the MVP this runs against
 /// [MockTransport] peers and [MockOdpDeviceLoop]; the real build swaps in BLE
@@ -14,6 +14,7 @@ class OdpDeviceSession {
   OdpDeviceSession({
     required OcpTransport transport,
     required MessagingService messaging,
+    required LocationService location,
     required SessionService session,
     required this.workspaceId,
     required this.conversationId,
@@ -23,12 +24,14 @@ class OdpDeviceSession {
     MeshtasticBridge? bridge,
   })  : _transport = transport,
         _messaging = messaging,
+        _location = location,
         _session = session,
         _connection = (connectionFactory ?? OdpConnection.new)(),
         _bridge = bridge ?? MeshtasticBridge();
 
   final OcpTransport _transport;
   final MessagingService _messaging;
+  final LocationService _location;
   final SessionService _session;
   final OdpConnection _connection;
   final MeshtasticBridge _bridge;
@@ -156,9 +159,22 @@ class OdpDeviceSession {
             body: text,
           ),
         );
-      case PositionBridgeMessage():
-        // Location wiring lands in a follow-up; session focuses on text MVP.
-        break;
+      case PositionBridgeMessage(:final position):
+        final nodeId =
+            MeshtasticBridge.decodePositionNodeId(payload.bytes) ??
+                remoteSenderId;
+        unawaited(
+          _location.ingest(
+            NodePosition(
+              nodeId: nodeId,
+              latitude: position.latitude,
+              longitude: position.longitude,
+              altitude: position.altitudeMeters,
+              timestamp: position.time ?? DateTime.now().toUtc(),
+              source: PositionSource.direct,
+            ),
+          ),
+        );
     }
   }
 

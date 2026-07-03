@@ -102,13 +102,25 @@ class MeshtasticBridge {
   }
 
   /// Serializes a position into the ODP POSITION payload layout:
-  /// `lat_i, lon_i, alt_i (int32 LE), time (uint32 LE)`.
-  static List<int> encodePositionPayload(MeshtasticPosition position) => [
-        ..._int32Le(position.latitudeI),
-        ..._int32Le(position.longitudeI),
-        ..._int32Le(position.altitudeI),
-        ..._uint32Le(position.unixSeconds),
-      ];
+  /// `lat_i, lon_i, alt_i (int32 LE), time (uint32 LE)` plus an optional
+  /// `nodeId` tail (`uint8 len` + UTF-8 bytes) for mock-first multi-node feeds.
+  static List<int> encodePositionPayload(
+    MeshtasticPosition position, {
+    String? nodeId,
+  }) {
+    final base = [
+      ..._int32Le(position.latitudeI),
+      ..._int32Le(position.longitudeI),
+      ..._int32Le(position.altitudeI),
+      ..._uint32Le(position.unixSeconds),
+    ];
+    if (nodeId == null || nodeId.isEmpty) return base;
+    final idBytes = nodeId.codeUnits;
+    if (idBytes.length > 255) {
+      throw ArgumentError.value(nodeId, 'nodeId', 'must fit in 255 bytes');
+    }
+    return [...base, idBytes.length, ...idBytes];
+  }
 
   /// Parses the ODP POSITION payload layout. Returns `null` if too short.
   static MeshtasticPosition? decodePositionPayload(List<int> bytes) {
@@ -119,6 +131,14 @@ class MeshtasticBridge {
       altitudeMeters: _readInt32Le(bytes, 8),
       unixSeconds: _readUint32Le(bytes, 12),
     );
+  }
+
+  /// Optional node id appended after the 16-byte POSITION core (mock-first).
+  static String? decodePositionNodeId(List<int> bytes) {
+    if (bytes.length <= 16) return null;
+    final len = bytes[16];
+    if (len <= 0 || bytes.length < 17 + len) return null;
+    return String.fromCharCodes(bytes.sublist(17, 17 + len));
   }
 
   static List<int> _utf8(String text) => text.codeUnits;

@@ -3,7 +3,7 @@ import 'package:ocp_app/app/ocp_app_coordinator.dart';
 import 'package:ocp_app/widgets/message_list_tile.dart';
 import 'package:ocp_core/ocp_core.dart';
 
-/// Messaging workspace — send/receive text over the mock ODP session.
+/// Messaging workspace — send/receive text over the ODP session when connected.
 class MessagingWorkspace extends StatefulWidget {
   const MessagingWorkspace({required this.coordinator, super.key});
 
@@ -32,12 +32,38 @@ class _MessagingWorkspaceState extends State<MessagingWorkspace> {
   Future<void> _send() async {
     final body = _controller.text.trim();
     if (body.isEmpty) return;
-    await widget.coordinator.deviceSession.sendText(body);
+
+    final session = widget.coordinator.deviceSession;
+    if (session == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pair a device in Devices to send over ODP.'),
+        ),
+      );
+      await widget.coordinator.core.messagingService.sendMessage(
+        messageId: DateTime.now().microsecondsSinceEpoch.toString(),
+        conversationId: OcpAppCoordinator.defaultConversationId,
+        workspaceId: OcpAppCoordinator.defaultWorkspaceId,
+        senderId: 'local',
+        body: body,
+      );
+    } else {
+      await session.sendText(body);
+    }
+
     _controller.clear();
     if (mounted) setState(() {});
   }
 
   Future<void> _simulateInbound() async {
+    if (!widget.coordinator.hasActiveSession) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pair a device first.')),
+      );
+      return;
+    }
     await widget.coordinator.mockDeviceLoop.emitText('mesh ping');
     if (mounted) setState(() {});
   }
@@ -62,13 +88,18 @@ class _MessagingWorkspaceState extends State<MessagingWorkspace> {
               builder: (context, _) {
                 return FutureBuilder<List<Message>>(
                   future: widget.coordinator.core.messagingService
-                      .conversationHistory(OcpAppCoordinator.defaultConversationId),
+                      .conversationHistory(
+                    OcpAppCoordinator.defaultConversationId,
+                  ),
                   builder: (context, snapshot) {
                     final messages = snapshot.data ?? [];
                     if (messages.isEmpty) {
-                      return const Center(
+                      return Center(
                         child: Text(
-                          'Send a message — the mock device echoes it back over ODP.',
+                          widget.coordinator.hasActiveSession
+                              ? 'Send a message — the mock device echoes it back over ODP.'
+                              : 'Pair a device in Devices to open an ODP session.',
+                          textAlign: TextAlign.center,
                         ),
                       );
                     }
@@ -87,8 +118,10 @@ class _MessagingWorkspaceState extends State<MessagingWorkspace> {
               Expanded(
                 child: TextField(
                   controller: _controller,
-                  decoration: const InputDecoration(
-                    hintText: 'Message',
+                  decoration: InputDecoration(
+                    hintText: widget.coordinator.hasActiveSession
+                        ? 'Message'
+                        : 'Message (offline queue until paired)',
                   ),
                   onSubmitted: (_) => _send(),
                 ),

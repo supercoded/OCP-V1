@@ -46,7 +46,7 @@ values so the `ocp_bridge_meshtastic` mapping is a direct pass-through.
 | Port | Name | Payload |
 |------|------|---------|
 | 0x01 | TEXT_MESSAGE | UTF-8 text bytes |
-| 0x03 | POSITION | lat_i, lon_i, alt_i (int32 LE, ×1e7 for lat/lon, meters for alt), time (uint32 LE, epoch seconds) |
+| 0x03 | POSITION | lat_i, lon_i, alt_i (int32 LE, ×1e7 for lat/lon, meters for alt), time (uint32 LE, epoch seconds). Optional mock-first tail: `uint8 nodeIdLen` + UTF-8 node id bytes. |
 | 0x00 | UNKNOWN | Unmapped/opaque bytes |
 
 ## Handshake

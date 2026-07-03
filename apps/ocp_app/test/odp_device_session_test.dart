@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mock_device/mock_device.dart';
 import 'package:ocp_app/session/odp_device_session.dart';
+import 'package:ocp_bridge_meshtastic/ocp_bridge_meshtastic.dart';
 import 'package:ocp_core/ocp_core.dart';
 import 'package:ocp_odp/ocp_odp.dart';
 import 'package:ocp_storage/ocp_storage.dart';
@@ -26,10 +27,13 @@ void main() {
       transport: device,
     );
     loop.start();
+    await app.connect();
+    await device.connect();
 
     final session = OdpDeviceSession(
       transport: app,
       messaging: core.messagingService,
+      location: core.locationService,
       session: core.sessionService,
       workspaceId: 'default',
       conversationId: 'default',
@@ -41,8 +45,6 @@ void main() {
     expect(core.sessionService.state, SessionState.connected);
 
     await session.sendText('hello mesh');
-
-    // Allow the echo to round-trip through the transport loop.
     await Future<void>.delayed(const Duration(milliseconds: 50));
 
     final history =
@@ -50,6 +52,50 @@ void main() {
     expect(history.length, greaterThanOrEqualTo(2));
     expect(history.any((m) => m.body == 'hello mesh'), isTrue);
     expect(history.any((m) => m.body == 'echo: hello mesh'), isTrue);
+
+    await session.close();
+    session.dispose();
+    await loop.stop();
+    app.dispose();
+    device.dispose();
+    await core.dispose();
+  });
+
+  test('session ingests POSITION frames into LocationService', () async {
+    final db = await OcpDatabase.openMemory();
+    final core = await OcpCore.create(db);
+
+    final app = MockTransport(name: 'app');
+    final device = MockTransport(name: 'device');
+    app.peer = device;
+    device.peer = app;
+
+    final loop = MockOdpDeviceLoop(device: MockOdpDevice(), transport: device);
+    loop.start();
+    await app.connect();
+    await device.connect();
+
+    final session = OdpDeviceSession(
+      transport: app,
+      messaging: core.messagingService,
+      location: core.locationService,
+      session: core.sessionService,
+      workspaceId: 'default',
+      conversationId: 'default',
+      localSenderId: 'local',
+      remoteSenderId: 'mock-device',
+    );
+    await session.open(deviceId: 'mock-device');
+
+    await loop.emitPosition(
+      const MeshtasticPosition(latitude: 37.775, longitude: -122.42),
+      nodeId: 'hiker',
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    final latest = await core.locationService.latest('hiker');
+    expect(latest, isNotNull);
+    expect(latest!.latitude, closeTo(37.775, 1e-4));
 
     await session.close();
     session.dispose();
@@ -68,13 +114,15 @@ void main() {
     app.peer = device;
     device.peer = app;
 
-    final mock = MockOdpDevice();
-    final loop = MockOdpDeviceLoop(device: mock, transport: device);
+    final loop = MockOdpDeviceLoop(device: MockOdpDevice(), transport: device);
     loop.start();
+    await app.connect();
+    await device.connect();
 
     final session = OdpDeviceSession(
       transport: app,
       messaging: core.messagingService,
+      location: core.locationService,
       session: core.sessionService,
       workspaceId: 'default',
       conversationId: 'default',

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:mock_device/src/mock_odp_device.dart';
+import 'package:ocp_bridge_meshtastic/ocp_bridge_meshtastic.dart';
 import 'package:ocp_transport/ocp_transport.dart';
 
 /// Wires a [MockOdpDevice] to the device-side [MockTransport] peer.
@@ -35,6 +36,14 @@ class MockOdpDeviceLoop {
   /// Simulates the device pushing a text message to the app.
   Future<void> emitText(String text) async {
     await _transport.send(_device.emitText(text));
+  }
+
+  /// Simulates a POSITION report from the mesh for [nodeId].
+  Future<void> emitPosition(
+    MeshtasticPosition position, {
+    required String nodeId,
+  }) async {
+    await _transport.send(_device.emitPosition(position, nodeId: nodeId));
   }
 
   Future<void> _onIncoming(List<int> data) async {

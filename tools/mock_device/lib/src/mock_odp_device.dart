@@ -1,3 +1,4 @@
+import 'package:ocp_bridge_meshtastic/ocp_bridge_meshtastic.dart';
 import 'package:ocp_odp/ocp_odp.dart';
 
 /// Simulated ODP device for loopback testing.
@@ -49,6 +50,22 @@ class MockOdpDevice {
       sequence: _sequence,
       port: OdpPort.textMessage,
       bytes: text.codeUnits,
+    );
+  }
+
+  /// Builds a device-originated POSITION DATA frame for [nodeId].
+  List<int> emitPosition(
+    MeshtasticPosition position, {
+    required String nodeId,
+  }) {
+    _sequence++;
+    return _codec.encodePortData(
+      sequence: _sequence,
+      port: OdpPort.position,
+      bytes: MeshtasticBridge.encodePositionPayload(
+        position,
+        nodeId: nodeId,
+      ),
     );
   }
 

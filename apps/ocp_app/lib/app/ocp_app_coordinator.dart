@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:mock_device/mock_device.dart';
 import 'package:mock_position_feed/mock_position_feed.dart';
 import 'package:ocp_app/session/odp_device_session.dart';
+import 'package:ocp_app/session/wire_position_publisher.dart';
 import 'package:ocp_core/ocp_core.dart';
 import 'package:ocp_maps/ocp_maps.dart';
 import 'package:ocp_plugin_api/ocp_plugin_api.dart';
@@ -19,21 +20,28 @@ class OcpAppCoordinator {
     required this.positionFeed,
     required this.selfPosition,
     required this.baseDirectory,
-    required this.deviceSession,
+    required this.appTransport,
+    required this.deviceTransport,
+    required this.mockDevice,
     required this.mockDeviceLoop,
   });
 
   final OcpCore core;
   final PluginRegistry plugins;
 
-  /// Mock-first ODP session (transport ↔ ODP ↔ bridge ↔ messaging).
-  final OdpDeviceSession deviceSession;
+  /// Live ODP session after pairing (null until a device is paired + connected).
+  OdpDeviceSession? deviceSession;
 
-  /// Device-side responder loop paired with [deviceSession].
+  /// Emits mock POSITION frames when a session is active.
+  WirePositionPublisher? positionPublisher;
+
+  /// Mock transport pair — shared by pairing handshake and the live session.
+  final MockTransport appTransport;
+  final MockTransport deviceTransport;
+  final MockOdpDevice mockDevice;
   final MockOdpDeviceLoop mockDeviceLoop;
 
-  /// MVP-only synthetic node feed driving the Maps workspace before real GPS
-  /// hardware is wired in (see build-plan-v2 Phase 1).
+  /// Synthetic node paths used by [WirePositionPublisher].
   final MockPositionFeed positionFeed;
 
   /// Self position for the self-centered sonar view (base-camp for the demo).
@@ -42,9 +50,56 @@ class OcpAppCoordinator {
   /// App storage root (used for the offline tile pack, among others).
   final Directory baseDirectory;
 
-  static const mockDeviceId = 'mock-device';
   static const defaultWorkspaceId = 'default';
   static const defaultConversationId = 'default';
+
+  bool get hasActiveSession =>
+      deviceSession != null &&
+      core.sessionService.state == SessionState.connected;
+
+  /// ODP pairing handshake exchange (mock-first: in-process [MockOdpDevice]).
+  Future<List<int>> pairingExchange(List<int> outgoing) async {
+    return mockDevice.handle(outgoing) ?? const <int>[];
+  }
+
+  /// Opens (or replaces) the ODP session for a paired [device].
+  Future<bool> connectPairedDevice(Device device) async {
+    await _closeSession(stopPublisher: true);
+
+    final session = OdpDeviceSession(
+      transport: appTransport,
+      messaging: core.messagingService,
+      location: core.locationService,
+      session: core.sessionService,
+      workspaceId: defaultWorkspaceId,
+      conversationId: defaultConversationId,
+      localSenderId: 'local',
+      remoteSenderId: device.deviceId,
+    );
+
+    final ok = await session.open(deviceId: device.deviceId);
+    if (!ok) {
+      session.dispose();
+      return false;
+    }
+
+    deviceSession = session;
+    positionPublisher ??= WirePositionPublisher(
+      feed: positionFeed,
+      deviceLoop: mockDeviceLoop,
+    );
+    positionPublisher!.start();
+    return true;
+  }
+
+  Future<void> _closeSession({required bool stopPublisher}) async {
+    if (stopPublisher) {
+      positionPublisher?.stop();
+    }
+    await deviceSession?.close();
+    deviceSession?.dispose();
+    deviceSession = null;
+  }
 
   static Future<OcpAppCoordinator> create() async {
     final dir = await getApplicationDocumentsDirectory();
@@ -53,7 +108,7 @@ class OcpAppCoordinator {
     final plugins = PluginRegistry();
     await plugins.install(ExamplePlugin());
 
-    // Mock-first transport pair: app ↔ simulated Meshtastic device.
+    final feed = MockPositionFeed.demo();
     final appTransport = MockTransport(name: 'app');
     final deviceTransport = MockTransport(name: 'device');
     appTransport.peer = deviceTransport;
@@ -66,32 +121,56 @@ class OcpAppCoordinator {
     );
     mockLoop.start();
 
-    final session = OdpDeviceSession(
-      transport: appTransport,
-      messaging: core.messagingService,
-      session: core.sessionService,
-      workspaceId: defaultWorkspaceId,
-      conversationId: defaultConversationId,
-      localSenderId: 'local',
-      remoteSenderId: mockDeviceId,
+    return OcpAppCoordinator._(
+      core: core,
+      plugins: plugins,
+      positionFeed: feed,
+      selfPosition: const GeoPoint(latitude: 37.7749, longitude: -122.4194),
+      baseDirectory: dir,
+      appTransport: appTransport,
+      deviceTransport: deviceTransport,
+      mockDevice: mockDevice,
+      mockDeviceLoop: mockLoop,
     );
-    await session.open(deviceId: mockDeviceId);
+  }
+
+  /// In-memory coordinator for widget/unit tests (no path_provider).
+  static Future<OcpAppCoordinator> createInMemory(OcpDatabase database) async {
+    final core = await OcpCore.create(database);
+    final plugins = PluginRegistry();
+    await plugins.install(ExamplePlugin());
+
+    final feed = MockPositionFeed.demo();
+    final appTransport = MockTransport(name: 'app');
+    final deviceTransport = MockTransport(name: 'device');
+    appTransport.peer = deviceTransport;
+    deviceTransport.peer = appTransport;
+
+    final mockDevice = MockOdpDevice();
+    final mockLoop = MockOdpDeviceLoop(
+      device: mockDevice,
+      transport: deviceTransport,
+    );
+    mockLoop.start();
 
     return OcpAppCoordinator._(
       core: core,
       plugins: plugins,
-      positionFeed: MockPositionFeed.demo(),
+      positionFeed: feed,
       selfPosition: const GeoPoint(latitude: 37.7749, longitude: -122.4194),
-      baseDirectory: dir,
-      deviceSession: session,
+      baseDirectory: Directory.systemTemp,
+      appTransport: appTransport,
+      deviceTransport: deviceTransport,
+      mockDevice: mockDevice,
       mockDeviceLoop: mockLoop,
     );
   }
 
   Future<void> dispose() async {
+    await _closeSession(stopPublisher: true);
     await mockDeviceLoop.stop();
-    await deviceSession.close();
-    deviceSession.dispose();
+    appTransport.dispose();
+    deviceTransport.dispose();
     await core.dispose();
   }
 }
