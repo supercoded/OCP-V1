@@ -46,9 +46,10 @@ Project authority and requirements live in [`specs/`](specs/):
 - [Project Charter](specs/PROJECT_CHARTER.md) (OCP-0002) — governance, scope, and success criteria
 - [Product Requirements](specs/PRODUCT_REQUIREMENTS_SPECIFICATION_V2.md) (OCP-0005) — functional and non-functional requirements
 - [Project Vision](specs/PROJECT_VISION.md) — mission, scope, and success criteria
-- [Build Plan](specs/build-plan.md) — monorepo structure and phased build order
+- [Build Plan v2](specs/build-plan-v2.md) — active plan: adds offline maps, sonar node view, and the MVP vertical slice
+- [Build Plan v1](specs/build-plan.md) — original monorepo structure and phased build order (superseded by v2)
 
-See [specs/README.md](specs/README.md) for the full document index.
+See [specs/README.md](specs/README.md) for the full document index and source-of-truth priority order.
 
 ## License
 
