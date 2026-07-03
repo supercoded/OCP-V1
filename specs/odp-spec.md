@@ -33,6 +33,22 @@ Open Device Protocol (ODP) — wire format between OCP application and a device.
 | 0x10 | DATA | Bidirectional |
 | 0xFF | ERROR | Bidirectional |
 
+## DATA Payload Ports
+
+DATA frames (`0x10`) carry a **port-tagged** payload: a single port byte
+followed by the application bytes. Port codes line up with Meshtastic PortNum
+values so the `ocp_bridge_meshtastic` mapping is a direct pass-through.
+
+```
+| Port (1) | App bytes (N) |
+```
+
+| Port | Name | Payload |
+|------|------|---------|
+| 0x01 | TEXT_MESSAGE | UTF-8 text bytes |
+| 0x03 | POSITION | lat_i, lon_i, alt_i (int32 LE, ×1e7 for lat/lon, meters for alt), time (uint32 LE, epoch seconds) |
+| 0x00 | UNKNOWN | Unmapped/opaque bytes |
+
 ## Handshake
 
 1. App sends HELLO with supported protocol versions `[1]`

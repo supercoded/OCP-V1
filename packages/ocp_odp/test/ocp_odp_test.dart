@@ -39,4 +39,32 @@ void main() {
     expect(connection.state, OdpState.connected);
     connection.dispose();
   });
+
+  test('round-trips a port-tagged text DATA frame', () {
+    final bytes = codec.encodePortData(
+      sequence: 7,
+      port: OdpPort.textMessage,
+      bytes: 'hello'.codeUnits,
+    );
+    final payload = codec.decodePortData(bytes);
+    expect(payload, isNotNull);
+    expect(payload!.port, OdpPort.textMessage);
+    expect(String.fromCharCodes(payload.bytes), 'hello');
+  });
+
+  test('round-trips a port-tagged position DATA frame', () {
+    final bytes = codec.encodePortData(
+      sequence: 8,
+      port: OdpPort.position,
+      bytes: const [1, 2, 3, 4],
+    );
+    final payload = codec.decodePortData(bytes);
+    expect(payload!.port, OdpPort.position);
+    expect(payload.bytes, const [1, 2, 3, 4]);
+  });
+
+  test('unknown port code decodes as unknown', () {
+    expect(OdpPort.fromCode(0x99), OdpPort.unknown);
+    expect(OdpDataPayload.decode(const []), isNull);
+  });
 }
