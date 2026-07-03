@@ -10,8 +10,12 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter:
     sdk: flutter
+  mock_device:
+    path: ../../tools/mock_device
   mock_position_feed:
     path: ../../tools/mock_position_feed
+  ocp_bridge_meshtastic:
+    path: ../../packages/ocp_bridge_meshtastic
   ocp_core:
     path: ../../packages/ocp_core
   ocp_maps:
@@ -26,6 +30,8 @@ dependencies:
     path: ../../packages/ocp_plugin_example
   ocp_storage:
     path: ../../packages/ocp_storage
+  ocp_transport:
+    path: ../../packages/ocp_transport
   path_provider: ^2.1.5
 
 dev_dependencies:
