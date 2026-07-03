@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:ocp_app/app/ocp_app_coordinator.dart';
-import 'package:ocp_app/pairing/device_pairing_controller.dart';
 import 'package:ocp_core/ocp_core.dart';
 import 'package:ocp_transport/ocp_transport.dart';
 
@@ -17,22 +16,10 @@ class DevicesWorkspace extends StatefulWidget {
 class _DevicesWorkspaceState extends State<DevicesWorkspace> {
   static const _workspaceId = OcpAppCoordinator.defaultWorkspaceId;
 
-  late final DevicePairingController _pairing;
   List<BleDiscoveredDevice> _discovered = const [];
   final Set<String> _pairingIds = {};
   bool _scanning = false;
   int _listVersion = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _pairing = DevicePairingController(
-      scanner: MockBleScanner(),
-      devices: widget.coordinator.core.devices,
-      workspaceId: _workspaceId,
-      scanTimeout: const Duration(milliseconds: 400),
-    );
-  }
 
   Future<void> _scan() async {
     setState(() => _scanning = true);
@@ -40,7 +27,7 @@ class _DevicesWorkspaceState extends State<DevicesWorkspace> {
       workspaceId: _workspaceId,
       name: 'Default',
     );
-    final found = await _pairing.scanForMeshtastic();
+    final found = await widget.coordinator.scanForMeshtastic();
     if (!mounted) return;
     setState(() {
       _discovered = found;
@@ -50,26 +37,12 @@ class _DevicesWorkspaceState extends State<DevicesWorkspace> {
 
   Future<void> _pair(BleDiscoveredDevice device) async {
     setState(() => _pairingIds.add(device.id));
-    final result = await _pairing.pair(
-      device,
-      exchange: widget.coordinator.pairingExchange,
-    );
+    final result = await widget.coordinator.pairDiscovered(device);
     if (!mounted) return;
 
-    var message = result.success
-        ? 'Paired ${device.name}'
-        : 'Pairing failed: ${result.reason}';
-
-    if (result.success && result.device != null) {
-      final connected = await widget.coordinator.connectPairedDevice(
-        result.device!,
-      );
-      if (connected) {
-        message = 'Paired and connected to ${device.name}';
-      } else {
-        message = 'Paired ${device.name}, but session connect failed';
-      }
-    }
+    final message = result.success
+        ? 'Paired and connected to ${device.name}'
+        : 'Pairing failed: ${result.reason ?? 'unknown error'}';
 
     setState(() {
       _pairingIds.remove(device.id);
@@ -84,6 +57,7 @@ class _DevicesWorkspaceState extends State<DevicesWorkspace> {
   @override
   Widget build(BuildContext context) {
     final session = widget.coordinator.core.sessionService;
+    final bleMode = widget.coordinator.useBleHardware;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -91,7 +65,8 @@ class _DevicesWorkspaceState extends State<DevicesWorkspace> {
         children: [
           Text(
             'Session: ${session.state.name} · '
-            '${session.activeDeviceId ?? 'none'}',
+            '${session.activeDeviceId ?? 'none'}'
+            '${bleMode ? ' · BLE hardware' : ' · mock demo'}',
             style: Theme.of(context).textTheme.labelMedium,
           ),
           const SizedBox(height: 8),

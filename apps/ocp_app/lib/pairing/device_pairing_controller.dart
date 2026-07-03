@@ -84,4 +84,23 @@ class DevicePairingController {
     await _devices.save(device);
     return PairingResult(success: true, device: device);
   }
+
+  /// Pairs [discovered] after BLE link verification (no ODP handshake).
+  Future<PairingResult> pairVerified(BleDiscoveredDevice discovered) async {
+    final now = DateTime.now().toUtc();
+    final device = Device(
+      deviceId: discovered.id,
+      workspaceId: workspaceId,
+      name: discovered.name,
+      transportType: 'ble',
+      capabilities: const ['meshtastic', 'lora'],
+      firmwareVersion: 'meshtastic-ble',
+      isPaired: true,
+      lastSeenAt: now,
+      createdAt: now,
+      updatedAt: now,
+    );
+    await _devices.save(device);
+    return PairingResult(success: true, device: device);
+  }
 }

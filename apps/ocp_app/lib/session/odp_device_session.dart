@@ -50,14 +50,25 @@ class OdpDeviceSession {
   OcpTransport get transport => _transport;
 
   /// Opens the transport, runs the ODP handshake, and starts the inbound pump.
-  Future<bool> open({required String deviceId}) async {
+  ///
+  /// When [skipOdpHandshake] is true (Meshtastic BLE), the transport performs
+  /// its own link setup in [OcpTransport.connect] and the ODP state machine is
+  /// marked connected without HELLO/CAPABILITY on the wire.
+  Future<bool> open({
+    required String deviceId,
+    bool skipOdpHandshake = false,
+  }) async {
     _session.setConnecting(deviceId);
     await _transport.connect();
 
-    final ok = await _connection.runHandshake(_sendAndReceive);
-    if (!ok) {
-      _session.setError(deviceId);
-      return false;
+    if (skipOdpHandshake) {
+      _connection.markConnected();
+    } else {
+      final ok = await _connection.runHandshake(_sendAndReceive);
+      if (!ok) {
+        _session.setError(deviceId);
+        return false;
+      }
     }
 
     _wireSub = _transport.incoming.listen(_connection.feedIncoming);

@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocp_app/app/ocp_app_coordinator.dart';
-import 'package:ocp_app/pairing/device_pairing_controller.dart';
 import 'package:ocp_storage/ocp_storage.dart';
 import 'package:ocp_storage/src/testing/isar_test_init.dart';
 import 'package:ocp_transport/ocp_transport.dart';
@@ -14,29 +13,14 @@ void main() {
     final db = await OcpDatabase.openMemory();
     final coordinator = await OcpAppCoordinator.createInMemory(db);
 
-    final pairing = DevicePairingController(
-      scanner: MockBleScanner(),
-      devices: coordinator.core.devices,
-      workspaceId: OcpAppCoordinator.defaultWorkspaceId,
-      scanTimeout: const Duration(milliseconds: 50),
-    );
-
     const discovered = BleDiscoveredDevice(
       id: 'AA:BB:CC:00:11:22',
       name: 'Meshtastic_RAK4631',
       serviceUuids: [MeshtasticBle.serviceUuid],
     );
 
-    final result = await pairing.pair(
-      discovered,
-      exchange: coordinator.pairingExchange,
-    );
+    final result = await coordinator.pairDiscovered(discovered);
     expect(result.success, isTrue);
-
-    expect(
-      await coordinator.connectPairedDevice(result.device!),
-      isTrue,
-    );
     expect(coordinator.hasActiveSession, isTrue);
     expect(coordinator.positionPublisher?.isRunning, isTrue);
 

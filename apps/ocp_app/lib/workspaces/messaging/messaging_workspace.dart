@@ -57,6 +57,8 @@ class _MessagingWorkspaceState extends State<MessagingWorkspace> {
   }
 
   Future<void> _simulateInbound() async {
+    final loop = widget.coordinator.mockDeviceLoop;
+    if (loop == null) return;
     if (!widget.coordinator.hasActiveSession) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -64,7 +66,7 @@ class _MessagingWorkspaceState extends State<MessagingWorkspace> {
       );
       return;
     }
-    await widget.coordinator.mockDeviceLoop.emitText('mesh ping');
+    await loop.emitText('mesh ping');
     if (mounted) setState(() {});
   }
 
@@ -97,7 +99,9 @@ class _MessagingWorkspaceState extends State<MessagingWorkspace> {
                       return Center(
                         child: Text(
                           widget.coordinator.hasActiveSession
-                              ? 'Send a message — the mock device echoes it back over ODP.'
+                              ? (widget.coordinator.useBleHardware
+                                  ? 'Send a message over BLE to your Meshtastic radio.'
+                                  : 'Send a message — the mock device echoes it back over ODP.')
                               : 'Pair a device in Devices to open an ODP session.',
                           textAlign: TextAlign.center,
                         ),
@@ -127,11 +131,12 @@ class _MessagingWorkspaceState extends State<MessagingWorkspace> {
                 ),
               ),
               IconButton(onPressed: _send, icon: const Icon(Icons.send)),
-              IconButton(
-                onPressed: _simulateInbound,
-                icon: const Icon(Icons.download),
-                tooltip: 'Simulate inbound mesh message',
-              ),
+              if (!widget.coordinator.useBleHardware)
+                IconButton(
+                  onPressed: _simulateInbound,
+                  icon: const Icon(Icons.download),
+                  tooltip: 'Simulate inbound mesh message',
+                ),
             ],
           ),
         ],

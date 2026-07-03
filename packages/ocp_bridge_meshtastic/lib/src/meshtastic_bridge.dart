@@ -57,12 +57,20 @@ class MeshtasticBridge {
           bytes: _utf8(text),
         );
       case PositionBridgeMessage(:final position):
-        return _codec.encodePortData(
-          sequence: _nextSequence(),
-          port: OdpPort.position,
-          bytes: encodePositionPayload(position),
-        );
+        return encodePositionToOdp(position);
     }
+  }
+
+  /// Encodes a position with an optional mesh node id tail (BLE fromNode).
+  List<int> encodePositionToOdp(
+    MeshtasticPosition position, {
+    String? nodeId,
+  }) {
+    return _codec.encodePortData(
+      sequence: _nextSequence(),
+      port: OdpPort.position,
+      bytes: encodePositionPayload(position, nodeId: nodeId),
+    );
   }
 
   /// Decodes a port-tagged ODP DATA frame into a [BridgeMessage].

@@ -46,6 +46,10 @@ abstract final class MeshtasticBle {
   static const String fromRadioCharacteristic =
       '2c55e69e-4993-11ed-b878-0242ac120002';
 
+  /// Notifies when a new `FromRadio` message is available (read until caught up).
+  static const String fromNumCharacteristic =
+      'ed9da18c-a800-4f66-a670-aa7547e34453';
+
   /// Whether [device] advertises the Meshtastic service (the "with ease"
   /// auto-detect path).
   static bool isMeshtastic(BleDiscoveredDevice device) {

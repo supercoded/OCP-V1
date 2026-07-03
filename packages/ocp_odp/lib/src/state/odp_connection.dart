@@ -121,6 +121,14 @@ class OdpConnection {
     return runHandshake(sendAndReceive);
   }
 
+  /// Marks the connection established without an ODP wire handshake.
+  ///
+  /// Used when the transport is Meshtastic BLE (config sync replaces HELLO).
+  void markConnected({int negotiatedVersion = 1}) {
+    _negotiatedVersion = negotiatedVersion;
+    _setState(OdpState.connected);
+  }
+
   void disconnect() {
     _negotiatedVersion = null;
     _setState(OdpState.disconnected);
