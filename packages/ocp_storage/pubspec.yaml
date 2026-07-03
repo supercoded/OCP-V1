@@ -1,0 +1,17 @@
+name: ocp_storage
+description: Isar persistence layer, schemas, and migrations for OCP.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  isar: ^3.1.0+1
+  isar_flutter_libs: ^3.1.0+1
+  path_provider: ^2.1.5
+
+dev_dependencies:
+  test: ^1.25.8
+  flutter_lints: ^5.0.0

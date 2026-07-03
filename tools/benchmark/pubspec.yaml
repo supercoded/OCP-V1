@@ -1,0 +1,12 @@
+name: benchmark
+description: Performance instrumentation harness for OCP.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.5.0
+
+dev_dependencies:
+  test: ^1.25.8
+  flutter_lints: ^5.0.0

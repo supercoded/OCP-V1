@@ -1,0 +1,33 @@
+name: ocp_app
+description: OCP Flutter application — presentation layer and workspaces.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  ocp_core:
+    path: ../../packages/ocp_core
+  ocp_odp:
+    path: ../../packages/ocp_odp
+  ocp_onp:
+    path: ../../packages/ocp_onp
+  ocp_plugin_api:
+    path: ../../packages/ocp_plugin_api
+  ocp_plugin_example:
+    path: ../../packages/ocp_plugin_example
+  ocp_storage:
+    path: ../../packages/ocp_storage
+  path_provider: ^2.1.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true

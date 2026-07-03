@@ -23,8 +23,8 @@ Authoritative project documents for the Open Communication Platform.
 | — | [build-plan.md](build-plan.md) | — | Active |
 | — | [charter.md](charter.md) | — | Redirect → PROJECT_CHARTER.md |
 | — | [prs.md](prs.md) | — | Redirect → PRODUCT_REQUIREMENTS_SPECIFICATION_V2.md |
-| — | [odp-spec.md](odp-spec.md) | — | Pending |
-| — | [onp-spec.md](onp-spec.md) | — | Pending |
+| — | [odp-spec.md](odp-spec.md) | 1.0.0 | Draft |
+| — | [onp-spec.md](onp-spec.md) | 1.0.0 | Draft |
 
 ## Design goals quick reference
 
