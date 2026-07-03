@@ -1,8 +1,70 @@
 # ODP Protocol Specification
 
-**Version:** Pending  
-**Status:** Not yet written
+**Document ID:** OCP-0010
+**Version:** 1.0.0
+**Status:** Draft
 
-Open Device Protocol (ODP) — wire format, handshake, and version negotiation between the application and a device.
+## Overview
 
-This document is a placeholder. To be authored in Phase 2 per [build-plan.md](build-plan.md).
+Open Device Protocol (ODP) — wire format between OCP application and a device.
+
+## Frame Format
+
+```
+| Magic (2) | Version (1) | Type (1) | Seq (4) | Length (2) | Payload (N) | CRC32 (4) |
+```
+
+- **Magic:** `0x4F 0x44` ("OD")
+- **Version:** Protocol version (currently `1`)
+- **Type:** Message type byte
+- **Seq:** Sequence number (uint32 LE) for replay protection
+- **Length:** Payload length (uint16 LE)
+- **Payload:** Type-specific bytes
+- **CRC32:** IEEE CRC32 over header+payload (excluding CRC field)
+
+## Message Types
+
+| Type | Name | Direction |
+|------|------|-----------|
+| 0x01 | HELLO | App → Device |
+| 0x02 | HELLO_ACK | Device → App |
+| 0x03 | CAPABILITY_REQ | App → Device |
+| 0x04 | CAPABILITY_RSP | Device → App |
+| 0x10 | DATA | Bidirectional |
+| 0xFF | ERROR | Bidirectional |
+
+## DATA Payload Ports
+
+DATA frames (`0x10`) carry a **port-tagged** payload: a single port byte
+followed by the application bytes. Port codes line up with Meshtastic PortNum
+values so the `ocp_bridge_meshtastic` mapping is a direct pass-through.
+
+```
+| Port (1) | App bytes (N) |
+```
+
+| Port | Name | Payload |
+|------|------|---------|
+| 0x01 | TEXT_MESSAGE | UTF-8 text bytes |
+| 0x03 | POSITION | lat_i, lon_i, alt_i (int32 LE, ×1e7 for lat/lon, meters for alt), time (uint32 LE, epoch seconds). Optional mock-first tail: `uint8 nodeIdLen` + UTF-8 node id bytes. |
+| 0x00 | UNKNOWN | Unmapped/opaque bytes |
+
+## Handshake
+
+1. App sends HELLO with supported protocol versions `[1]`
+2. Device responds HELLO_ACK with selected version
+3. App sends CAPABILITY_REQ
+4. Device responds CAPABILITY_RSP with capability list
+
+## Timeouts
+
+- Handshake timeout: 5 seconds
+- Response timeout: 3 seconds per message
+
+## Error Codes
+
+| Code | Meaning |
+|------|---------|
+| 0x01 | Version mismatch |
+| 0x02 | Invalid frame |
+| 0x03 | Timeout |

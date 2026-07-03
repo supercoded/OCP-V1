@@ -1,0 +1,15 @@
+name: ocp_odp
+description: ODP codec and connection state machine.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  meta: ^1.16.0
+
+dev_dependencies:
+  flutter_lints: ^5.0.0
+  test: ^1.25.8
