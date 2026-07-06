@@ -13,5 +13,8 @@
     "build:desktop": "bash scripts/build-desktop.sh",
     "build:android": "bash scripts/build-android.sh",
     "validate:field": "bash scripts/field-validation.sh"
+  },
+  "dependencies": {
+    "protobufjs": "^8.7.0"
   }
 }
