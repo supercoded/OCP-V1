@@ -2,6 +2,7 @@ import { ipcMain, type IpcMainInvokeEvent, BrowserWindow } from "electron";
 import { NetworkState } from "@ocp/network";
 import { discoverTransport } from "@ocp/offline-core";
 import { RuViewClient } from "@ocp/tools-ruview";
+import { RtlTcpClient, SpectrumProcessor } from "@ocp/tools-rtlsdr";
 
 export interface SonarNode {
   id: number;
@@ -13,12 +14,25 @@ export interface SonarNode {
   name?: string;
 }
 
+export interface SpectrumFrame {
+  centerFreq: number;
+  sampleRate: number;
+  fftSize: number;
+  frequencies: Float32Array;
+  magnitudes: Float32Array;
+}
+
 export interface OcpState {
   connected: boolean;
   transportKind?: string;
   nodeCount: number;
   nodes: SonarNode[];
   ruViewConnected: boolean;
+  rtlConnected: boolean;
+  rtlCenterFreq?: number;
+  rtlSampleRate?: number;
+  rtlHost?: string;
+  rtlPort?: number;
 }
 
 export class OcpService {
@@ -28,11 +42,13 @@ export class OcpService {
   interval?: ReturnType<typeof setInterval>;
   lastState?: OcpState;
 
+  rtlClient?: RtlTcpClient;
+  rtlProcessor?: SpectrumProcessor;
+
   start() {
     this.#registerIpc();
     this.#broadcastLoop();
 
-    // Feed Meshtastic packets into NetworkState
     this.networkState.on("packetRelayed", () => this.#emit());
     this.networkState.on("nodeAdded", () => this.#emit());
     this.networkState.on("nodeUpdated", () => this.#emit());
@@ -43,6 +59,7 @@ export class OcpService {
     if (this.interval) clearInterval(this.interval);
     this.transport?.disconnect();
     this.ruview?.stop();
+    this.#stopRtl();
   }
 
   #registerIpc() {
@@ -75,7 +92,6 @@ export class OcpService {
         reconnect: true,
       });
       this.ruview.on("sensing", (sensing: any) => {
-        // Forward to renderer
         BrowserWindow.getAllWindows().forEach((win) => {
           win.webContents.send("ocp:ruview:sensing", sensing);
         });
@@ -98,7 +114,103 @@ export class OcpService {
       return { ok: true };
     });
 
+    ipcMain.handle("ocp:rtl:connect", async (_evt: IpcMainInvokeEvent, cfg: { host?: string; port?: number; centerFreq?: number; sampleRate?: number }) => {
+      this.#stopRtl();
+      const host = cfg.host || "localhost";
+      const port = cfg.port ?? 1234;
+      const client = new RtlTcpClient({ host, port, autoReconnect: true });
+      const processor = new SpectrumProcessor({
+        fftSize: 2048,
+        sampleRate: cfg.sampleRate || 2048000,
+        centerFreq: cfg.centerFreq || 100000000,
+      });
+
+      client.on("dongleInfo", () => this.#emit());
+      client.on("iq", (samples: Uint8Array) => processor.feedInterleavedUint8(samples));
+      client.on("error", (err: any) => {
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send("ocp:rtl:error", String(err?.message || err));
+        });
+      });
+      client.on("close", () => {
+        this.#emit();
+        this.#stopRtl();
+      });
+
+      processor.on("spectrum", (frame: SpectrumFrame) => {
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send("ocp:rtl:spectrum", frame);
+        });
+      });
+
+      try {
+        await client.connect();
+      } catch (err: any) {
+        return { ok: false, error: err.message };
+      }
+
+      this.rtlClient = client;
+      this.rtlProcessor = processor;
+      this.#emit();
+      return { ok: true, host, port };
+    });
+
+    ipcMain.handle("ocp:rtl:disconnect", async () => {
+      this.#stopRtl();
+      this.#emit();
+      return { ok: true };
+    });
+
+    ipcMain.handle("ocp:rtl:setFreq", async (_evt: IpcMainInvokeEvent, hz: number) => {
+      if (!this.rtlClient) return { ok: false, error: "RTL-SDR not connected" };
+      this.rtlClient.setCenterFreq(hz);
+      this.rtlProcessor?.configure({ centerFreq: hz });
+      this.#emit();
+      return { ok: true };
+    });
+
+    ipcMain.handle("ocp:rtl:setGain", async (_evt: IpcMainInvokeEvent, { mode, value }: { mode?: "auto" | "manual"; value?: number }) => {
+      if (!this.rtlClient) return { ok: false, error: "RTL-SDR not connected" };
+      if (mode) this.rtlClient.setGainMode(mode === "manual");
+      if (value !== undefined) this.rtlClient.setGain(Math.round(value * 10));
+      return { ok: true };
+    });
+
+    ipcMain.handle("ocp:rtl:mock", async (_evt: IpcMainInvokeEvent, cfg: { centerFreq?: number; sampleRate?: number; carriers?: { freqOffset: number; amplitude: number }[] }) => {
+      this.#stopRtl();
+      const { MockRtlSource } = await import("@ocp/tools-rtlsdr");
+      const processor = new SpectrumProcessor({
+        fftSize: 2048,
+        sampleRate: cfg.sampleRate || 2048000,
+        centerFreq: cfg.centerFreq || 100000000,
+      });
+      const mock = new MockRtlSource({
+        sampleRate: cfg.sampleRate || 2048000,
+        centerFreq: cfg.centerFreq || 100000000,
+        carriers: cfg.carriers || [{ freqOffset: 256000, amplitude: 0.9 }],
+      });
+      mock.on("iq", (samples: Uint8Array) => processor.feedInterleavedUint8(samples));
+      mock.start();
+      processor.on("spectrum", (frame: SpectrumFrame) => {
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send("ocp:rtl:spectrum", frame);
+        });
+      });
+      this.rtlClient = mock as any;
+      this.rtlProcessor = processor;
+      this.#emit();
+      return { ok: true };
+    });
+
     ipcMain.handle("ocp:state", () => this.#state());
+  }
+
+  #stopRtl() {
+    this.rtlClient?.disconnect?.();
+    this.rtlClient?.destroy?.();
+    this.rtlProcessor?.destroy();
+    this.rtlClient = undefined;
+    this.rtlProcessor = undefined;
   }
 
   #state(): OcpState {
@@ -120,6 +232,11 @@ export class OcpService {
       nodeCount: nodes.length,
       nodes,
       ruViewConnected: this.ruview ? true : false,
+      rtlConnected: this.rtlClient ? true : false,
+      rtlCenterFreq: this.rtlProcessor?.centerFreq,
+      rtlSampleRate: this.rtlProcessor?.sampleRate,
+      rtlHost: (this.rtlClient as any)?.host,
+      rtlPort: (this.rtlClient as any)?.port,
     };
   }
 

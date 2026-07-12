@@ -46,15 +46,15 @@
 - `packages/ocp_network/` with NetworkState, RouteTable, onpCodec
 - Wired into `meshtasticTransport.js`
 
-### Phase 6 — UI — IN PROGRESS ✅ shell + sonar + devices + messaging + settings + packaging config built
+### Phase 6 — UI — IN PROGRESS ✅ shell + sonar + devices + messaging + settings + spectrum + packaging config built
 - `apps/desktop/` Electron + React + Tailwind + Radix UI app shell.
 - Submarine CIC theme with dark phosphor colors, CRT scanline overlay class, glow helpers.
 - Left sidebar navigation with 7 workspaces: Sonar, Messaging, Network, Devices, Spectrum, Map, Settings.
 - **SonarPPI** canvas component — rotating sweep arm, range rings, bearing grid, blips with afterglow, sweep-speed and range controls, optional audio ping per revolution.
 - **Real data wiring:**
-  - Electron main-process `OcpService` connects `NetworkState` + `RuViewClient` + `discoverTransport`.
-  - IPC APIs: `ocp:connect`, `ocp:disconnect`, `ocp:ruview:start`, `ocp:ruview:stop`, `ocp:state`.
-  - Renderer `OcpServiceContext` consumes IPC state + RuView sensing events.
+  - Electron main-process `OcpService` connects `NetworkState` + `RuViewClient` + `discoverTransport` + `RtlTcpClient`/`SpectrumProcessor`.
+  - IPC APIs: `ocp:connect`, `ocp:disconnect`, `ocp:ruview:start`, `ocp:ruview:stop`, `ocp:rtl:connect`, `ocp:rtl:disconnect`, `ocp:rtl:setFreq`, `ocp:rtl:setGain`, `ocp:rtl:mock`, `ocp:state`.
+  - Renderer `OcpServiceContext` consumes IPC state + RuView sensing events + RTL-SDR spectrum frames.
   - SonarPPI renders real `NetworkState` nodes and RuView presence targets as blips.
   - Replaced the `howmanypeoplearearound` Wi-Fi probe tracker with RuView Wi-Fi CSI sensing.
 - **Devices workspace** built with four tabs:
@@ -70,11 +70,18 @@
 - **Settings workspace** built with:
   - Live connection status summary.
   - External tool checklist (`esptool.py`, `nrfutil`, RTL-SDR, RuView Docker) with install commands.
+- **Spectrum workspace** built with:
+  - `RtlTcpClient` connecting to `rtl_tcp` over TCP (5-byte BE command protocol, 12-byte `RTL0` dongle_info header, interleaved uint8 I/Q).
+  - `SpectrumProcessor` using `kissfft-js` WASM FFT with Hann window, dB magnitude, center-shifted bins.
+  - `MockRtlSource` synthetic carrier/noise generator for offline UI testing.
+  - `SpectrumCanvas` live FFT trace and `WaterfallCanvas` scrolling frequency-time history with phosphor color ramp.
+  - Source controls: host/port, center frequency, gain mode/value, mock signal button.
+  - Package `packages/ocp_tools_rtlsdr` with unit tests.
 - **Windows packaging** configured:
   - `electron-builder.yml` with NSIS installer + portable executable targets.
   - GitHub Actions workflow `.github/workflows/build-windows.yml` builds and releases `.exe` on tagged releases.
   - `apps/desktop/README.md` with download instructions.
-- Stub pages for Network/Spectrum/Map.
+- Stub pages for Network/Map.
 - Desktop app builds successfully (`npm run desktop:build`) and local Linux unpack succeeded.
 
 ### Tools — RuView Wi-Fi CSI adapter ✅
@@ -90,7 +97,7 @@
 |---|---|---|
 | Meshtastic / RAK serial-protobuf API | ✅ | `RESEARCH_LOG.md` |
 | Baofeng UV-5RM programming protocol | ✅ | `RESEARCH_LOG.md` |
-| RTL-SDR spectrum options | ✅ | `RESEARCH_LOG.md` |
+| RTL-SDR spectrum implementation | ✅ | `RESEARCH_LOG.md`, `DECISION_LOG.md` |
 | Offline maps (MapLibre / MBTiles) | ✅ | `RESEARCH_LOG.md` |
 | iOS USB/BLE bridge limitations | ✅ | `RESEARCH_LOG.md` |
 | Windows desktop packaging | ✅ | `RESEARCH_LOG.md` |
@@ -104,7 +111,7 @@
 3. **Centerpiece:** Sonar PPI signal mapper — rotating sweep, range rings, bearings, blips for Meshtastic nodes / RuView presence / RTL-SDR peaks / Baofeng hits.
 4. **RuView presence/vitals:** `packages/ocp_tools_ruview` connects to RuView sensing server WebSocket (`ws://host:3001/ws/sensing`) and feeds the Sonar mapper.
 5. **Offline maps:** MapLibre Native + MBTiles.
-6. **RTL-SDR:** `rtl_tcp` helper / gateway pattern.
+6. **RTL-SDR:** `rtl_tcp` TCP streaming; FFT in main process via `kissfft-js`; spectrum + waterfall in renderer.
 7. **iOS support:** Requires a BLE or Wi-Fi gateway.
 8. **Baofeng programming:** Serial abstraction mirroring CHIRP `0xA5` command format.
 9. **Meshtastic serial mode:** Lock to PROTO.
@@ -114,32 +121,33 @@
 ## Test status
 
 ```
-# tests 24
-# pass 24
+# tests 26
+# pass 26
 # fail 0
 ```
 
-Includes all original tests plus new transport auto-discovery, firmware updater, ONP network, and RuView client tests.
+Includes all original tests plus new transport auto-discovery, firmware updater, ONP network, RuView client, and RTL-SDR client/FFT tests.
 
 ## Known issues / limitations
 - `test-rak-connection.js` still tries a hardcoded IP and takes ~11s to fail gracefully.
 - `serialTransportConnection.js` and `bleTransportConnection.js` are stubs.
 - Firmware updater requires external `esptool.py` or `nrfutil`.
+- RTL-SDR spectrum: `rtl_tcp` source + `kissfft-js` FFT + spectrum/waterfall canvas.
+- `packages/ocp_tools_rtlsdr` unit tests.
 - ONP codec is JSON-based in the JS scaffold.
 - Desktop app builds but cannot be visually verified on the arm64 Pi headless environment; requires Windows display to run.
 - RuView integration requires the RuView Docker simulator or an ESP32-S3/C6 CSI node; the OCP-V1 app only provides the WebSocket client.
+- RTL-SDR requires `rtl_tcp` from the rtl-sdr package; not bundled.
 - Windows icon (`build/icon.ico`) is not yet generated; installer will use the default Electron icon until an `.ico` is added.
 
 ## Pending phases / features
 
 ### Phase 6 — UI (continued)
-- Add CRT overlay toggle and sound engine polish.
 - MapLibre offline map view.
-- Spectrum FFT/waterfall canvas.
 - Baofeng channel editor.
 
 ### RTL-SDR spectrum
-- `rtl_tcp` source + FFT/waterfall canvas.
+- ✅ `rtl_tcp` source + FFT/waterfall canvas. Refine: add bookmarks, peak hold, VFOs, recording.
 
 ### Baofeng programming
 - Channel editor + serial read/write.
@@ -151,8 +159,7 @@ Includes all original tests plus new transport auto-discovery, firmware updater,
 - None.
 
 ## Next priorities
-1. Spectrum FFT/waterfall canvas.
+1. MapLibre offline map view.
 2. Baofeng channel editor.
-3. MapLibre offline map view.
-4. Add proper Windows `.ico` and test the installer on a Windows machine.
-5. Wire Messaging workspace to real Meshtastic/ODP send/receive.
+3. Add proper Windows `.ico` and test the installer on a Windows machine.
+4. Wire Messaging workspace to real Meshtastic/ODP send/receive.

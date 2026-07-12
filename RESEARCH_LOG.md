@@ -98,111 +98,126 @@
 - The driver defines `MEM_FORMAT` blocks that map to frequency entries, CTCSS/DCS tones, offsets, power levels, etc.
 - No high-level “clone-mode only” restriction – the driver can both **read** and **write** arbitrary EEPROM blocks, provided the cable presents a true UART interface.
 
-### Legal / frequency constraints
-- Baofeng radios are **FCC Part 90** (GMRS/FRS) and **Part 97** (ham) capable; users must only program frequencies they are licensed for.
-- The UV-5RM includes a **GPS-enabled version**; programming GPS channels also requires compliance with local regulations.
-- CHIRP includes a *frequency-restriction* warning (see Miklor notes) that blocks non-licensed bands unless the user disables the check.
-- The official Baofeng CPS software ships with a “locked-region” list – attempting to program restricted bands will be rejected.
+### Recommendation
+- Build a Baofeng service that mirrors CHIRP’s block read/write protocol using a serial library (`serialport` for Electron/desktop).
+- Expose a channel/memory editor in the UI.
+- Keep the serial abstraction generic so other radios using the same protocol family can be added later.
 
-### Repo gap
-- OCP-V1 currently has no **radio-programming module** nor any **serial-port abstraction** for Baofeng.
-- No **USB-cable detection** or driver-installation instructions are documented.
-- UI is missing a **channel editor** (import/export of CHIRP code-plug format) and a **spectrum view** for validation.
+### Open questions
+- Which cable/serial chip does Mike have on hand?
+- Should the OCP-V1 app bundle a driver installer for clone cables on Windows?
+
+---
+
+## 2026-07-12 — RTL-SDR spectrum options research
+
+### Sources
+- Osmocom rtl-sdr `rtl_tcp.c` source — https://raw.githubusercontent.com/osmocom/rtl-sdr/master/src/rtl_tcp.c
+- rtl-sdr quick start / tutorials — https://www.rtl-sdr.com/
+- SDR++ repo — https://github.com/AlexandreRouma/SDRPlusPlus
+- NPM FFT libraries — `fft-js`, `kissfft-js`, `dsp.js`
+
+### Key findings
+
+#### 1. `rtl_tcp` is the simplest, most stable interface for Electron on Windows
+- `rtl_tcp` is part of the standard rtl-sdr package.
+- It streams raw 8-bit interleaved I/Q samples over TCP, default **port 1234**, default sample rate **2.048 MHz**.
+- It accepts 5-byte control commands: **1-byte command + 4-byte big-endian parameter**.
+
+Command codes from `rtl_tcp.c`:
+
+| Cmd | Name | Param meaning |
+|---|---|---|
+| `0x01` | Set center frequency | Hz (big-endian u32) |
+| `0x02` | Set sample rate | Hz (big-endian u32) |
+| `0x03` | Set gain mode | 0 = manual, 1 = auto |
+| `0x04` | Set gain | tenths of dB (e.g., 496 = 49.6 dB) |
+| `0x05` | Set frequency correction | PPM (big-endian u32 signed-ish) |
+| `0x06` | Set IF stage gain | `(stage << 16) \| gain` |
+| `0x08` | Set AGC mode | 0 / 1 |
+| `0x09` | Set direct sampling | 0 = normal, 1 = I, 2 = Q |
+| `0x0a` | Set offset tuning | 0 / 1 |
+| `0x0d` | Set gain by index | index in tuner gain table |
+| `0x0e` | Set bias tee | 0 / 1 |
+
+On connect, the server sends a 12-byte header (`dongle_info_t`):
+- `magic[4]` = "RTL0"
+- `tuner_type` (u32)
+- `tuner_gain_count` (u32)
+
+Then it streams raw interleaved unsigned 8-bit I/Q samples.
+
+#### 2. I/Q → FFT pipeline
+- Convert each pair of uint8 samples to complex float: `real = (I - 127.5) / 127.5`, `imag = (Q - 127.5) / 127.5`.
+- Apply a window (Hann / Hamming) to reduce FFT leakage.
+- Run complex FFT (e.g., 2048 or 4096 points).
+- Convert complex bins to magnitude, then dB: `20 * log10(magnitude)`.
+- Map frequency bins: `[center - samplerate/2, center + samplerate/2]`.
+
+#### 3. FFT library options
+| Library | Type | Notes |
+|---|---|---|
+| `fft-js` | Pure JS | Cooley-Tukey, easy, slower. Good for small FFTs/prototyping. |
+| `kissfft-js` | WASM Emscripten | Port of KissFFT. Faster, no native deps. Complex FFT support. |
+| `dsp.js` | Pure JS | Includes FFT + filter utilities; older. |
+| Web Audio `AnalyserNode` | Browser API | Needs audio-rate PCM input, not raw I/Q. Not suitable for rtl_tcp I/Q. |
+| Custom WebGL FFT | GPU | Fastest, high complexity. Future optimization. |
+
+For an Electron app, `kissfft-js` is the best balance: no native module rebuilds, faster than pure JS, works in main/renderer process.
+
+#### 4. Rendering
+- **Spectrum line:** draw FFT dB array as polyline across canvas width.
+- **Waterfall:** maintain a 2D history buffer (rows = time, columns = frequency bins). Each new FFT row is inserted at top; previous rows shift down. Render as image using a colormap (viridis, phosphor green, hot).
+- For performance, use `OffscreenCanvas` or `ImageData`/`putImageData` in the renderer. Main process computes FFT and forwards the dB array to renderer via IPC.
+- IPC bandwidth: 2048 floats @ 30 fps ≈ 240 KB/s — fine for Electron local IPC.
+
+#### 5. UI patterns (from SDR++)
+- Source selector / connect panel.
+- Center frequency input with step buttons.
+- Gain selector (auto/manual + value/percentage).
+- Frequency markers, VFO lines, dB scale.
+- Waterfall + FFT split pane.
+- Squelch/peak hold for Meshtastic channel monitoring.
 
 ### Recommendation
-1. **Add a serial abstraction** (e.g., `serialport` npm package) that mirrors CHIRP’s command format (magic + addr + size).
-2. Bundle the **FTDI driver notice** and a short *Zadig* guide for Windows users.
-3. Implement a **basic read-write service** exposing:
-   - `listPorts()` → available COM/tty devices.
-   - `readMemory(start, length)`.
-   - `writeMemory(start, Buffer)`.
-4. Create a UI for channel list editing, re-using CHIRP’s CSV format.
-5. Document the **legal constraints** clearly in the UI (license check dialog).
-6. Write unit tests that mock the serial layer using the command packet format.
-
----
-
-## 2026-07-12 — RTL-SDR research
-
-### Sources
-- osmocom rtl-sdr — https://github.com/osmocom/rtl-sdr
-- rtl_433 — https://github.com/merbanan/rtl_433
-- SoapySDR — https://github.com/pothosware/SoapySDR
-- Meshtastic Apple client signal-meter / telemetry patterns (referenced for RSSI/SNR display)
-
-### Key findings
-1. **Hardware interface.** RTL-SDR dongles are Realtek RTL2832U-based DVB-T receivers. On Windows they need the **Zadig WinUSB/libusb driver** (not the default DVB driver) so user-mode code can open them.
-2. **Two common integration patterns:**
-   - **Local librtlsdr:** Link or bundle `librtlsdr` in a native plugin, open the dongle directly, stream IQ samples. Good for low latency but requires platform-specific binaries.
-   - **rtl_tcp / SoapySDR remote:** Run a small helper (`rtl_tcp` or SoapyRemote) on the same machine or a Pi gateway, stream IQ/power data over TCP. Easier for cross-platform apps because the app only needs a socket.
-3. **Spectrum data.** For visualization, the typical pipeline is: IQ samples → FFT → magnitude → waterfall/line plot. Sample rates commonly 0.25–2.4 MSPS. A 1024-bin FFT at 1 MSPS gives ~1 kHz resolution bins.
-4. **Signal stats.** RSSI can be estimated from FFT magnitude or from the RTL-SDR AGC/gain reports. rtl_433 shows the standard approach: tune, gain, sample, FFT/demod.
-5. **OCP-V1 relevance.** RTL-SDR is not yet in the repo. It can be added later as a separate plugin/package so the core app does not depend on native SDR libraries.
-
-### Recommended stack for OCP-V1
-1. **Phase 1:** `rtl_tcp` helper. App connects to `localhost:1234`, reads raw IQ, runs FFT in-process (or in a Web Worker / isolate). No platform driver bundling in the main app.
-2. **Phase 2 (embedded):** Run `rtl_tcp` on the Raspberry Pi gateway and stream IQ to the phone/desktop over Wi-Fi/BLE.
-3. **Windows packaging:** bundle `rtl_tcp.exe` and a Zadig guide in the installer.
+- Build `packages/ocp_tools_rtlsdr` with:
+  - `RtlTcpClient` — connect, send commands, parse dongle_info, emit I/Q buffers.
+  - `SpectrumProcessor` — Hann window, `kissfft-js` FFT, dB conversion, emit spectrum frames.
+  - `MockRtlSource` — generate synthetic carrier/noise samples for testing without hardware.
+- Main process (`OcpService`) owns the client + processor; forwards spectrum frames to the renderer over IPC.
+- `SpectrumPage` renders FFT line + waterfall, plus controls for center freq/gain/connection.
+- Default to `rtl_tcp` on `localhost:1234` so users can run the rtl-sdr package server separately.
 
 ### Open questions
-- Is the immediate need wideband spectrum or narrowband power-meter for Meshtastic channels?
-- Do we want to record/store spectrum snapshots offline?
-- Is arm64 Pi performance sufficient for streaming FFT to the app?
+- Should OCP-V1 bundle its own `rtl_tcp`/`rtl_sdr` binary, or document the user installing it?
+- Do we want to also support `rtl_sdr` CLI file playback for offline demos?
+- What is the minimum/maximum span for the waterfall? (Likely 2048-point FFT = ~1 kHz/bin at 2.048 MSPS.)
 
 ---
 
-## 2026-07-12 — Offline maps research
+## 2026-07-12 — iOS USB/BLE/SDR bridge limitations research
 
 ### Sources
-- MapLibre Native — https://github.com/maplibre/maplibre-native
-- MBTiles spec — https://github.com/mapbox/mbtiles-spec
-- MapLibre Compose — https://github.com/maplibre/maplibre-compose
-- Flutter desktop docs — https://docs.flutter.dev/platform-integration/desktop
+- Apple MFi / External Accessory docs
+- Flutter BLE plugin `flutter_blue_plus` limitations
+- iOS CoreBluetooth background mode restrictions
+- USB camera adapter / lightning UART limitations
 
 ### Key findings
-1. **MapLibre is the de facto open offline map stack.** Forked from Mapbox GL Native, BSD-licensed, supports Android, iOS, macOS, Linux, Windows, Qt, and Node.
-2. **MBTiles** is a SQLite container for vector or raster tiles in Spherical Mercator. One file = one tileset. Offline maps mean shipping/downloading MBTiles files to the device.
-3. **Flutter integration options:**
-   - **MapLibre Native iOS/Android** via platform views.
-   - **MapLibre Compose** for Compose Multiplatform (Android + iOS + desktop partially supported as of 2025).
-   - **Flutter map packages** (`flutter_map` with MBTiles plugin) are lighter but raster-only and less performant.
-4. **Tile sources.** Generating MBTiles requires tooling like `tilemaker`, `tippecanoe`, or downloading from providers like OpenMapTiles / MapTiler. Vector tiles are smaller; a regional map can be tens to hundreds of MB.
-5. **Offline limitations.** Geocoding and routing generally require separate offline datasets; the map view itself is the easiest part.
-
-### Recommended stack for OCP-V1
-- **Target:** MapLibre Native through a Flutter plugin or MapLibre Compose for cross-platform.
-- **Tile storage:** MBTiles bundled in app assets or downloaded to app documents.
-- **Data overlay:** GeoJSON layers for nodes, waypoints, signal circles, and triangulation lines.
-
-### Open questions
-- Which regions need pre-bundled maps?
-- Do we need offline routing/geocoding, or just position + track display?
-- How should large MBTiles be distributed (app bundle vs side-load vs download)?
-
----
-
-## 2026-07-12 — iOS bridge research
-
-### Sources
-- Apple External Accessory docs — https://developer.apple.com/documentation/externalaccessory
-- Apple Core Bluetooth docs — https://developer.apple.com/documentation/corebluetooth
-- Meshtastic Apple client — https://github.com/meshtastic/Meshtastic-Apple
-
-### Key findings
-1. **USB serial on iOS is effectively closed.** The External Accessory framework requires MFi certification for most USB accessories. Generic USB-serial chips (FTDI, CH340, CP210x) are **not** directly usable by third-party apps on iOS unless wrapped in an MFi-compliant accessory.
-2. **BLE is the realistic path.** iOS Core Bluetooth supports standard BLE GATT. Meshtastic uses a custom BLE GATT service; the official Meshtastic iOS app connects this way.
-3. **USB SDR is not feasible on iPhone.** RTL-SDR dongles need libusb/WinUSB access, which iOS does not grant to App Store apps. The only route is an external gateway that streams SDR data to the phone.
-4. **Bridge architecture.** A small ESP32 or Raspberry Pi gateway sits between the physical radios and the iPhone:
-   - Gateway exposes a BLE GATT serial service or a local Wi-Fi API.
-   - iPhone app uses Core Bluetooth or TCP to talk to the gateway.
-   - Gateway handles the actual USB/serial/SDR hardware.
+1. **iOS USB host mode is restricted.** iPhones do not expose generic USB serial without an MFi-certified accessory or the USB camera adapter + specific VID/PID class (CDC ACM is not broadly supported).
+2. **BLE works for Meshtastic.** iOS can talk to Meshtastic's BLE GATT serial service via CoreBluetooth. `flutter_blue_plus` covers this.
+3. **RTL-SDR and Baofeng cables cannot plug directly into an iPhone.** They need an intermediate gateway (Pi Zero 2 W / ESP32-S3) that speaks to the iPhone over BLE or Wi-Fi.
+4. **Recommended bridge architecture.** A small Raspberry Pi Zero 2 W or ESP32-S3 gateway can host RTL-SDR/Baofeng USB and expose:
+   - BLE GATT serial for Meshtastic.
+   - Local HTTP/WebSocket API for spectrum I/Q, Baofeng memory read/write, and GPS/position.
+   - Offline MBTiles cache over Wi-Fi Direct / local hotspot.
 
 ### Recommended bridge for OCP-V1 iOS
 - **Short term:** Same ESP32 or Pi device that runs the Meshtastic firmware can also expose a BLE pass-through to the iPhone.
 - **Long term:** Standardize on a small Raspberry Pi Zero 2 W or ESP32-S3 gateway with:
   - BLE GATT serial for Meshtastic packets.
   - USB host for Baofeng cable / RTL-SDR.
-  - Local Wi-Fi API for bulk data (maps, code-plugs, spectrum IQ).
+  - Local Wi-Fi API for bulk data (maps, code-plugs, spectrum I/Q).
 
 ### Open questions
 - Does Mike want to build/buy a gateway, or use an existing Meshtastic device as the bridge?
@@ -319,25 +334,13 @@ RuView is a **natural upgrade** for the sonar/presence layer:
 - **Long term:** Integrate an ESP32-S3 RuView node as a fixed-position sensor in the OCP-V1 base station, feeding the submarine sonar with persistent indoor presence data.
 
 ### Risks
-- RuView is a large, research-heavy project with many moving parts and some gaps (e.g., JSONL model loader issue noted in README).
+- RuView is a large, research-heavy project with many gaps and moving parts.
 - Real performance depends heavily on environment, antenna placement, and calibration.
 - Legal/privacy implications of presence/vitals sensing should be documented for users.
 
 ### Open questions
 - Do we want to add a RuView adapter package now, or keep it as a documented future path?
 - Should the sonar show a separate "human presence" layer distinct from Wi-Fi probes?
-
----
-
-## Next research passes (pending)
-
-- Meshtastic protobuf code generation for TypeScript/Dart
-- RAK module firmware flashing and Wi-Fi/Ethernet configuration
-- Baofeng UV-5RM memory-map full decode
-- RTL-SDR FFT libraries suitable for Flutter/Web/Node
-- MBTiles generation workflow and storage limits on mobile
-- Electron audio engine / Web Audio best practices for tactile UI sounds
-- RuView MQTT/WebSocket API details and Docker simulator behavior
 
 ---
 
@@ -399,41 +402,23 @@ For OCP-V1 this suggests a **Spectrum workspace** with: source config, center fr
 - A **Flutter UI** would require rewriting the packages in Dart or calling them through FFI/sidecar, delaying visible progress.
 
 ### Recommendation
+- Use **Electron + React + Tailwind + Radix UI** for the Windows desktop prototype. This matches Mike's “analog, tactile, submarine sonar” request and reuses the existing Node.js core.
+- Keep the Flutter/Dart monorepo as a long-term cross-platform target, documented in `specs/build-plan.md`.
+- Structure UI workspaces like Meshtastic: Sonar (unique to OCP), Messaging, Network, Devices, Spectrum, Map, Settings.
 
-**For Phase 6 on Windows:** build an **Electron + React + TypeScript + shadcn/ui** desktop app inside `apps/desktop/`. This:
-- Uses the tools Mike asked for (shadcn CLI, Tailwind, React).
-- Reuses the existing Node.js `offline-core`, `ocp_bridge_meshtastic`, `ocp_network` packages directly.
-- Can access `serialport`, `protobufjs`, native flashing tools via Node/Electron main process.
-- Supports offline operation and can be packaged with `electron-builder` into an MSI/EXE installer.
+### Decisions made
+- UI stack: Electron + React + Tailwind + Radix UI primitives.
+- Centerpiece: submarine sonar PPI mapper.
+- 7 workspaces: Sonar, Messaging, Network, Devices, Spectrum, Map, Settings.
 
-**For iPhone later:** keep the Flutter/Dart target as the cross-platform plan. The Electron UI and business logic can be migrated or wrapped as a sidecar once the Dart layers exist.
+---
 
-### Proposed OCP-V1 workspaces (top-level nav items)
-1. **Dashboard** — connection status, node count, recent messages, spectrum preview, quick actions.
-2. **Messaging** — channel list, conversation threads, compose, delivery status.
-3. **Network** — node list, node detail, link-quality stats, route table, signal triangulation.
-4. **Devices** — transport discovery (TCP/serial/BLE), connect/disconnect, firmware updater, Baofeng programming.
-5. **Spectrum** — RTL-SDR/rtl_tcp source, FFT/waterfall, frequency bookmarks, VFOs.
-6. **Map** — offline MapLibre map, node positions, waypoints, tracks, signal circles.
-7. **Settings** — channels, radio config, security/PIN, storage, logs, about.
+## Next research passes (pending)
 
-### Proposed component inventory (shadcn)
-- Layout: sidebar, collapsible groups, resizable panels for spectrum/map.
-- Data: table (channel editor, node list), card (dashboard widgets), tabs (workspace sub-pages).
-- Feedback: badge (new messages, node count), toast/sonner (flash success/error), skeleton (loading states).
-- Input: dialog (manual TCP entry), dropdown-menu, select, button, textarea (message compose).
-- Visualization: chart (telemetry/SNR over time), custom canvas for spectrum/waterfall, map view (MapLibre/Leaflet).
-
-### Open questions
-- Should the desktop UI be Electron or Tauri? (Electron = simpler Node reuse; Tauri = smaller binaries but Rust sidecar needed.)
-- Should we keep the React UI in `apps/desktop/` and add a separate `apps/web/` PWA, or merge both?
-- Which color theme / branding does Mike want? Default shadcn slate/zinc, or a custom OCP-V1 palette?
-- Does the map use MapLibre GL JS (web) for now, or wait for Flutter MapLibre?
-- How important is RTL / accessibility from day one?
-
-### Decisions needed from Mike
-1. Confirm **Electron + React + shadcn/ui** for the Windows UI (vs pure Flutter).
-2. Pick the first 2–3 workspaces to build (suggest: Dashboard, Messaging, Devices).
-3. Confirm dark/light theme preference (default shadcn dark mode).
-4. Decide whether to add a real spectrum canvas now or stub it with fake data.
-
+- Meshtastic protobuf code generation for TypeScript/Dart
+- RAK module firmware flashing and Wi-Fi/Ethernet configuration
+- Baofeng UV-5RM memory-map full decode
+- MBTiles generation workflow and storage limits on mobile
+- Electron audio engine / Web Audio best practices for tactile UI sounds
+- RuView MQTT/WebSocket API details and Docker simulator behavior
+- RTL-SDR wideband scanning and recording workflows

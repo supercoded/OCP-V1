@@ -54,3 +54,41 @@
 **Reason:** Reusable across all of Mike's apps, consistent memory hygiene, named agents, party-mode reviews.
 
 **Reversibility:** Medium — would require migrating files back to project-only.
+
+---
+
+## 2026-07-12 — RTL-SDR spectrum implementation decision
+
+**Question:** How should OCP-V1 acquire and display RTL-SDR spectrum in the Electron desktop app?
+
+**Options considered:**
+1. Direct RTL-SDR library binding via Node native addon (`node-rtlsdr`).
+2. Spawn `rtl_tcp` (or run it externally) and stream I/Q over TCP.
+3. Spawn `rtl_sdr` CLI and read raw sample files.
+4. Use `rtl_power` for pre-baked sweeps.
+
+**Chosen:** Option 2 — connect to `rtl_tcp` over TCP, process I/Q in the Electron main process, and forward FFT spectrum frames to the renderer over IPC.
+
+**Reason:**
+- `rtl_tcp` is stable, cross-platform, and already part of the rtl-sdr package.
+- No native Node addon build/dependency issues; no Windows driver/FFI complexity.
+- The same TCP interface works whether `rtl_tcp` runs locally on Windows or on a Pi gateway.
+- FFT can be done in pure JS/WASM (`kissfft-js`) with no GPU/WebGL complexity for the first pass.
+
+**Implementation plan:**
+1. New package `packages/ocp_tools_rtlsdr`.
+   - `RtlTcpClient`: connect, send commands, parse dongle_info, emit I/Q buffers, emit errors.
+   - `SpectrumProcessor`: Hann window, complex FFT via `kissfft-js`, magnitude → dB, emit `{ frequencies, magnitudes, centerFreq, sampleRate }` frames.
+   - `MockRtlSource`: synthetic carrier/noise generator for tests and UI dev.
+2. `OcpService` in Electron main process:
+   - IPC `rtl:connect(host, port)`, `rtl:disconnect()`, `rtl:setFreq(centerFreq)`, `rtl:setGain(...)`, `rtl:state()`.
+   - Forward spectrum frames to renderer via `rtl:spectrum` IPC event.
+3. Renderer:
+   - `SpectrumPage` controls (host/port, center freq, gain, connect).
+   - Canvas spectrum line + waterfall using the phosphor color theme.
+4. External dependency:
+   - `rtl_tcp` from the rtl-sdr package. Documented in Settings; not bundled.
+
+**Reversibility:** Medium. If we later need lower latency or higher throughput, we can move FFT to a worker thread, switch to WebGL, or add direct libusb/Native addon support.
+
+---
