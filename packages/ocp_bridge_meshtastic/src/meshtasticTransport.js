@@ -207,6 +207,13 @@ export class MeshtasticTransport extends TransportConnection {
         // Emit as OCP frame
         this.emit("frame", decoded);
         
+        // Forward packet and nodeInfo to a NetworkState instance if provided via options
+        if (this.options.networkState) {
+          const ns = this.options.networkState;
+          if (decoded.packet) ns.onPacket(decoded.packet);
+          if (decoded.nodeInfo) ns.onNodeInfo(decoded.nodeInfo);
+        }
+        
         this.emit("received", { 
           kind: this.kind, 
           bytes: messageBuffer.length,

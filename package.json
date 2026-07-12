@@ -12,9 +12,18 @@
     "test": "node --test",
     "build:desktop": "bash scripts/build-desktop.sh",
     "build:android": "bash scripts/build-android.sh",
-    "validate:field": "bash scripts/field-validation.sh"
+    "validate:field": "bash scripts/field-validation.sh",
+    "firmware:list": "node scripts/update-meshtastic-firmware.js list",
+    "firmware:download": "node scripts/update-meshtastic-firmware.js download",
+    "firmware:flash": "node scripts/update-meshtastic-firmware.js flash",
+    "desktop:dev": "npm run dev --workspace=@ocp/desktop",
+    "desktop:build": "npm run build --workspace=@ocp/desktop",
+    "desktop:dist:win": "npm run dist:win --workspace=@ocp/desktop"
   },
   "dependencies": {
     "protobufjs": "^8.7.0"
+  },
+  "devDependencies": {
+    "electron": "34.0.0"
   }
 }

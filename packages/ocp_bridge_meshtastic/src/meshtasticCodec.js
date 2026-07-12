@@ -1,11 +1,27 @@
-import { loadSync } from "protobufjs";
+import protobufjs from "protobufjs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
-// Resolve the path to the protobuf files
+const { loadSync } = protobufjs;
+
+// Resolve the path to the protobuf files. First try a package-installed location,
+// then fall back to the repository's protobufs/ directory.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const PROTOBUF_PATH = resolve(__dirname, "../../../../protobufs/meshtastic");
+import { existsSync } from "node:fs";
+
+const PROTOBUF_PATH = (() => {
+  const candidates = [
+    resolve(__dirname, "../../node_modules/meshtastic-protobufs/proto/meshtastic"),
+    resolve(__dirname, "../../../../protobufs/meshtastic"),
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(resolve(candidate, "mesh.proto"))) {
+      return candidate;
+    }
+  }
+  return candidates[candidates.length - 1];
+})();
 
 /**
  * Codec for translating between Meshtastic protobufs and OCP protocol
@@ -13,22 +29,20 @@ const PROTOBUF_PATH = resolve(__dirname, "../../../../protobufs/meshtastic");
 export class MeshtasticCodec {
   constructor() {
     try {
-      // Create a root and manually load the files to avoid import path issues
-      this.root = new (loadSync().__proto__.constructor)();
-      
-      // Load the main protobuf files directly
-      this.root.loadSync(resolve(PROTOBUF_PATH, "mesh.proto"), {keepCase: true});
-      this.root.loadSync(resolve(PROTOBUF_PATH, "portnums.proto"), {keepCase: true});
-      this.root.loadSync(resolve(PROTOBUF_PATH, "channel.proto"), {keepCase: true});
-      this.root.loadSync(resolve(PROTOBUF_PATH, "config.proto"), {keepCase: true});
-      this.root.loadSync(resolve(PROTOBUF_PATH, "device_ui.proto"), {keepCase: true});
-      this.root.loadSync(resolve(PROTOBUF_PATH, "module_config.proto"), {keepCase: true});
-      this.root.loadSync(resolve(PROTOBUF_PATH, "telemetry.proto"), {keepCase: true});
-      this.root.loadSync(resolve(PROTOBUF_PATH, "xmodem.proto"), {keepCase: true});
-      
-      // Resolve all files
-      this.root.resolveAll();
-      
+      this.root = loadSync(
+        [
+          resolve(PROTOBUF_PATH, "mesh.proto"),
+          resolve(PROTOBUF_PATH, "portnums.proto"),
+          resolve(PROTOBUF_PATH, "channel.proto"),
+          resolve(PROTOBUF_PATH, "config.proto"),
+          resolve(PROTOBUF_PATH, "device_ui.proto"),
+          resolve(PROTOBUF_PATH, "module_config.proto"),
+          resolve(PROTOBUF_PATH, "telemetry.proto"),
+          resolve(PROTOBUF_PATH, "xmodem.proto"),
+          resolve(PROTOBUF_PATH, "serial_hal.proto"),
+        ],
+        { keepCase: true }
+      );
       // Get the key message types
       this.MeshPacket = this.root.lookupType("meshtastic.MeshPacket");
       this.FromRadio = this.root.lookupType("meshtastic.FromRadio");

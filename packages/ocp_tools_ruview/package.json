@@ -1,0 +1,12 @@
+{
+  "name": "@ocp/tools-ruview",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/ruviewClient.js",
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}
