@@ -16,6 +16,7 @@ async function createWindow() {
     title: "OCP-V1",
     darkTheme: true,
     backgroundColor: "#111111",
+    icon: path.join(__dirname, "../build/icon.png"),
     webPreferences: {
       preload: path.join(__dirname, "../preload/preload.js"),
       contextIsolation: true,
