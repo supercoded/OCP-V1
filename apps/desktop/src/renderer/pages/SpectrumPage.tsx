@@ -218,7 +218,7 @@ export function SpectrumPage() {
   return (
     <div className="absolute inset-0 p-4 flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold tracking-widest uppercase text-ocp-accent text-glow">
+        <h2 className="text-lg font-semibold tracking-widest uppercase text-ocp-bright">
           Spectrum
         </h2>
         <div className="flex items-center gap-3">
@@ -230,8 +230,8 @@ export function SpectrumPage() {
               </span>
             </div>
           )}
-          <StatusLamp active={service.state.rtlConnected} label={service.state.rtlConnected ? "LIVE" : "OFFLINE"} />
-          <div className="text-xs font-mono text-ocp-text-dim">
+          <StatusLamp state={service.state.rtlConnected ? "active" : "off"} label={service.state.rtlConnected ? "LIVE" : "OFFLINE"} />
+          <div className="text-xs font-mono text-ocp-dim">
             {frame ? `${(frame.centerFreq / 1e6).toFixed(3)} MHz · ${(frame.sampleRate / 1e6).toFixed(3)} MSPS · ${frame.fftSize} bins` : "No source"}
           </div>
         </div>
@@ -253,7 +253,7 @@ export function SpectrumPage() {
               vfoLeft={vfoLeftBin}
               vfoRight={vfoRightBin}
             />
-            <div className="absolute bottom-1 right-2 text-[10px] font-mono text-ocp-text-dim/60 pointer-events-none">
+            <div className="absolute bottom-1 right-2 text-[10px] font-mono text-ocp-dim/60 pointer-events-none">
               {showVfo ? "Click to set VFO" : ""}
             </div>
           </div>
@@ -265,28 +265,28 @@ export function SpectrumPage() {
         {/* Controls */}
         <div className="w-full lg:w-72 flex flex-col gap-3 shrink-0 overflow-y-auto">
           <div className="p-3 rounded border border-ocp-border bg-ocp-panel space-y-3">
-            <div className="text-xs uppercase tracking-wider text-ocp-text-dim">rtl_tcp Source</div>
+            <div className="text-xs uppercase tracking-wider text-ocp-dim">rtl_tcp Source</div>
             <TextField label="Host" value={host} onChange={setHost} />
             <TextField label="Port" value={port} onChange={setPort} />
             <div className="grid grid-cols-2 gap-2">
               <AnalogButton onClick={connect} disabled={service.state.rtlConnected}>Connect</AnalogButton>
               <AnalogButton onClick={disconnect} disabled={!service.state.rtlConnected}>Disconnect</AnalogButton>
             </div>
-            <div className="text-[10px] text-ocp-text-dim">
+            <div className="text-[10px] text-ocp-dim">
               Run <code>rtl_tcp -a 0.0.0.0 -p 1234</code> on the host, then connect.
             </div>
           </div>
 
           <div className="p-3 rounded border border-ocp-border bg-ocp-panel space-y-3">
-            <div className="text-xs uppercase tracking-wider text-ocp-text-dim">Mock Source</div>
-            <div className="text-[10px] text-ocp-text-dim mb-1">
+            <div className="text-xs uppercase tracking-wider text-ocp-dim">Mock Source</div>
+            <div className="text-[10px] text-ocp-dim mb-1">
               For UI testing without an RTL-SDR dongle.
             </div>
             <AnalogButton onClick={connectMock} disabled={service.state.rtlConnected}>Start Mock Signal</AnalogButton>
           </div>
 
           <div className="p-3 rounded border border-ocp-border bg-ocp-panel space-y-3">
-            <div className="text-xs uppercase tracking-wider text-ocp-text-dim">Receiver Settings</div>
+            <div className="text-xs uppercase tracking-wider text-ocp-dim">Receiver Settings</div>
             <TextField label="Center Freq (MHz)" value={centerFreq} onChange={setCenterFreq} />
             <div className="grid grid-cols-2 gap-2">
               <AnalogButton onClick={applyFreq} disabled={!service.state.rtlConnected}>Set Freq</AnalogButton>
@@ -309,7 +309,7 @@ export function SpectrumPage() {
 
           {/* Display controls */}
           <div className="p-3 rounded border border-ocp-border bg-ocp-panel space-y-3">
-            <div className="text-xs uppercase tracking-wider text-ocp-text-dim">Display</div>
+            <div className="text-xs uppercase tracking-wider text-ocp-dim">Display</div>
             <AnalogToggle label="Peak Hold" checked={peakHoldEnabled} onChange={setPeakHoldEnabled} />
             <AnalogToggle label="VFO Band" checked={showVfo} onChange={setShowVfo} />
           </div>
@@ -326,8 +326,8 @@ export function SpectrumPage() {
 
           {/* Recording */}
           <div className="p-3 rounded border border-ocp-border bg-ocp-panel space-y-3">
-            <div className="text-xs uppercase tracking-wider text-ocp-text-dim">I/Q Recording</div>
-            <div className="text-[10px] text-ocp-text-dim mb-1">
+            <div className="text-xs uppercase tracking-wider text-ocp-dim">I/Q Recording</div>
+            <div className="text-[10px] text-ocp-dim mb-1">
               Capture raw I/Q data to ~/ocp-recordings/
             </div>
             <AnalogButton

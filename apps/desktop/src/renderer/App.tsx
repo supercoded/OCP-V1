@@ -24,22 +24,40 @@ export default function App() {
   const service = useOcpService();
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-ocp-bg text-ocp-text">
+    <div className="flex h-screen w-screen overflow-hidden bg-ocp-bg text-ocp-text font-mono">
       <Sidebar active={active} onChange={setActive} />
       <div className="flex flex-1 flex-col min-w-0">
-        <header className="h-14 border-b border-ocp-border bg-ocp-panel flex items-center justify-between px-4 shrink-0">
-          <h1 className="text-lg font-semibold tracking-widest uppercase text-ocp-accent">
-            OCP-V1 Command
-          </h1>
-          <div className="flex items-center gap-3 text-xs text-ocp-text-dim font-mono">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-ocp-accent animate-pulse" />
-              Sonar active
+        {/* Top bar — INDI-style flat gray */}
+        <header className="h-[32px] border-b border-ocp-border bg-ocp-panel flex items-center justify-between px-3 shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] font-bold text-ocp-bright tracking-[1px] uppercase">
+              {active === "sonar" && "SONAR PPI"}
+              {active === "messaging" && "MESSAGING"}
+              {active === "network" && "NETWORK"}
+              {active === "devices" && "DEVICES"}
+              {active === "spectrum" && "SPECTRUM"}
+              {active === "map" && "MAP"}
+              {active === "settings" && "SETTINGS"}
             </span>
-            <span>| Windows</span>
+            <span className="flex items-center gap-[5px] text-[10px] text-ocp-dim">
+              <span className="w-[6px] h-[6px] rounded-full bg-ocp-green" />
+              {service.state.connected
+                ? `Meshtastic ${service.state.transportKind}`
+                : "Meshtastic standby"}
+            </span>
+          </div>
+          <div className="text-[10px] text-ocp-muted flex items-center gap-[10px]">
+            {service.state.connected && (
+              <>
+                <span>Nodes <span className="text-ocp-bright">{service.state.nodeCount}</span></span>
+                <span>·</span>
+              </>
+            )}
+            <span>RuView {service.state.ruViewConnected ? "connected" : "standby"}</span>
           </div>
         </header>
 
+        {/* Main content */}
         <main className="flex-1 relative min-h-0">
           <Routes>
             <Route path="/" element={<SonarPage />} />
@@ -52,28 +70,26 @@ export default function App() {
           </Routes>
         </main>
 
-        <footer className="h-8 border-t border-ocp-border bg-ocp-panel flex items-center justify-between px-3 text-[10px] text-ocp-text-dim font-mono uppercase tracking-wide shrink-0">
+        {/* Bottom status bar */}
+        <footer className="h-[28px] border-t border-ocp-border bg-ocp-panel flex items-center justify-between px-3 text-[10px] text-ocp-muted font-mono tracking-wide shrink-0">
           <div className="flex items-center gap-4">
-            <span className="inline-flex items-center gap-1.5">
-              <span
-                className={[
-                  "w-1.5 h-1.5 rounded-full",
-                  service.state.connected ? "bg-ocp-accent animate-pulse" : "bg-ocp-amber",
-                ].join(" ")}
-              />
-              {service.state.connected ? `Meshtastic ${service.state.transportKind}` : "Meshtastic standby"}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span
-                className={[
-                  "w-1.5 h-1.5 rounded-full",
-                  service.state.ruViewConnected ? "bg-ocp-red animate-pulse" : "bg-ocp-text-dim",
-                ].join(" ")}
-              />
-              RuView {service.state.ruViewConnected ? "connected" : "standby"}
+            <span>OCP-V1 v0.6.0 · {active.toUpperCase()}</span>
+          </div>
+          <div className="flex items-center gap-[14px]">
+            {service.state.connected && (
+              <>
+                <span>Nodes <span className="text-ocp-bright">{service.state.nodeCount}</span></span>
+                <span>·</span>
+              </>
+            )}
+            <span>
+              <span className={[
+                "w-[6px] h-[6px] rounded-full inline-block mr-1",
+                service.state.connected ? "bg-ocp-green" : "bg-ocp-amber",
+              ].join(" ")} />
+              {service.state.connected ? "CONNECTED" : "STANDBY"}
             </span>
           </div>
-          <div>Nodes: {service.state.nodeCount} · RuView targets: {service.ruViewSensing.length}</div>
         </footer>
       </div>
     </div>

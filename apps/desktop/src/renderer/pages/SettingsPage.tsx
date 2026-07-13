@@ -28,57 +28,57 @@ export function SettingsPage() {
 
   return (
     <div className="absolute inset-0 p-6 overflow-auto">
-      <h2 className="text-lg font-semibold tracking-widest uppercase text-ocp-accent text-glow mb-4">
+      <h2 className="text-lg font-semibold tracking-widest uppercase text-ocp-bright  mb-4">
         Settings
       </h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="p-4 rounded-lg border border-ocp-border bg-ocp-panel">
-          <div className="text-xs uppercase tracking-wider text-ocp-text-dim mb-3">Connection Status</div>
+          <div className="text-xs uppercase tracking-wider text-ocp-dim mb-3">Connection Status</div>
           <div className="space-y-2 text-xs font-mono text-ocp-text">
             <div className="flex justify-between">
               <span>Meshtastic connected</span>
-              <span className={service.state.connected ? "text-ocp-accent" : "text-ocp-text-dim"}>
+              <span className={service.state.connected ? "text-ocp-bright" : "text-ocp-dim"}>
                 {service.state.connected ? "YES" : "NO"}
               </span>
             </div>
             <div className="flex justify-between">
               <span>Transport kind</span>
-              <span className="text-ocp-text-dim">{service.state.transportKind || "—"}</span>
+              <span className="text-ocp-dim">{service.state.transportKind || "—"}</span>
             </div>
             <div className="flex justify-between">
               <span>Mesh nodes</span>
-              <span className="text-ocp-text-dim">{service.state.nodeCount}</span>
+              <span className="text-ocp-dim">{service.state.nodeCount}</span>
             </div>
             <div className="flex justify-between">
               <span>RuView connected</span>
-              <span className={service.state.ruViewConnected ? "text-ocp-accent" : "text-ocp-text-dim"}>
+              <span className={service.state.ruViewConnected ? "text-ocp-bright" : "text-ocp-dim"}>
                 {service.state.ruViewConnected ? "YES" : "NO"}
               </span>
             </div>
             <div className="flex justify-between">
               <span>RuView targets</span>
-              <span className="text-ocp-text-dim">{service.ruViewSensing.length}</span>
+              <span className="text-ocp-dim">{service.ruViewSensing.length}</span>
             </div>
           </div>
         </div>
 
         <div className="p-4 rounded-lg border border-ocp-border bg-ocp-panel">
-          <div className="text-xs uppercase tracking-wider text-ocp-text-dim mb-3">External Tools</div>
+          <div className="text-xs uppercase tracking-wider text-ocp-dim mb-3">External Tools</div>
           <div className="space-y-3">
             {DEPS.map((d) => (
               <div key={d.name} className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-ocp-text">{d.name}</span>
-                  <span className="text-[10px] text-ocp-text-dim">{d.purpose}</span>
+                  <span className="text-[10px] text-ocp-dim">{d.purpose}</span>
                 </div>
-                <code className="text-[10px] font-mono text-ocp-accent bg-ocp-bg px-2 py-1 rounded border border-ocp-border">
+                <code className="text-[10px] font-mono text-ocp-bright bg-ocp-bg px-2 py-1 rounded border border-ocp-border">
                   {d.install}
                 </code>
               </div>
             ))}
           </div>
-          <div className="mt-4 text-[10px] text-ocp-text-dim leading-relaxed">
+          <div className="mt-4 text-[10px] text-ocp-dim leading-relaxed">
             OCP-V1 does not bundle these tools because their licenses and architectures vary.
             The installer will prompt you to install missing tools on first run in a future update.
           </div>

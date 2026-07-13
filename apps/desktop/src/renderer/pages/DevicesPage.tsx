@@ -56,7 +56,7 @@ export function DevicesPage() {
   return (
     <div className="absolute inset-0 flex flex-col p-6 gap-4 overflow-auto">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold tracking-widest uppercase text-ocp-accent text-glow">
+        <h2 className="text-lg font-semibold tracking-widest uppercase text-ocp-bright ">
           Devices
         </h2>
         <div className="flex gap-2">
@@ -68,8 +68,8 @@ export function DevicesPage() {
               className={[
                 "px-3 py-1.5 rounded border text-[10px] uppercase tracking-wider transition-all",
                 tab === t
-                  ? "border-ocp-accent text-ocp-accent bg-ocp-panel-2"
-                  : "border-ocp-border text-ocp-text-dim hover:border-ocp-text-dim",
+                  ? "border-ocp-bright text-ocp-bright bg-ocp-panel-2"
+                  : "border-ocp-border text-ocp-dim hover:border-ocp-text-dim",
               ].join(" ")}
             >
               {t}
@@ -88,7 +88,7 @@ export function DevicesPage() {
         <div className="flex flex-col gap-4 max-w-2xl">
           <div className="p-4 rounded-lg border border-ocp-border bg-ocp-panel flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs uppercase tracking-wider text-ocp-text-dim">Meshtastic Connection</span>
+              <span className="text-xs uppercase tracking-wider text-ocp-dim">Meshtastic Connection</span>
               <StatusLamp
                 state={service.state.connected ? "active" : "off"}
                 label={service.state.connected ? `Connected · ${service.state.transportKind}` : "Disconnected"}
@@ -116,8 +116,8 @@ export function DevicesPage() {
             </div>
           </div>
 
-          <div className="p-4 rounded-lg border border-ocp-border bg-ocp-panel text-xs text-ocp-text-dim font-mono">
-            <div className="uppercase tracking-wider mb-2 text-ocp-accent">Status</div>
+          <div className="p-4 rounded-lg border border-ocp-border bg-ocp-panel text-xs text-ocp-dim font-mono">
+            <div className="uppercase tracking-wider mb-2 text-ocp-bright">Status</div>
             <div>Transport: {service.state.transportKind || "—"}</div>
             <div>Connected: {service.state.connected ? "yes" : "no"}</div>
             <div>Mesh nodes: {service.state.nodeCount}</div>
@@ -129,7 +129,7 @@ export function DevicesPage() {
         <div className="flex flex-col gap-4 max-w-2xl">
           <div className="p-4 rounded-lg border border-ocp-border bg-ocp-panel flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs uppercase tracking-wider text-ocp-text-dim">RuView Presence Sensor</span>
+              <span className="text-xs uppercase tracking-wider text-ocp-dim">RuView Presence Sensor</span>
               <StatusLamp
                 state={service.state.ruViewConnected ? "active" : "off"}
                 label={service.state.ruViewConnected ? "Streaming" : "Standby"}
@@ -141,9 +141,9 @@ export function DevicesPage() {
               <TextField label="WebSocket Port" value={ruviewPort} onChange={setRuviewPort} placeholder="3001" />
             </div>
 
-            <div className="text-[10px] text-ocp-text-dim leading-relaxed">
+            <div className="text-[10px] text-ocp-dim leading-relaxed">
               Requires the RuView sensing server. Run the Docker simulator with{" "}
-              <code className="text-ocp-accent">bash scripts/run-ruview-simulator.sh</code>.
+              <code className="text-ocp-bright">bash scripts/run-ruview-simulator.sh</code>.
             </div>
 
             <div className="flex gap-3">
@@ -156,8 +156,8 @@ export function DevicesPage() {
             </div>
           </div>
 
-          <div className="p-4 rounded-lg border border-ocp-border bg-ocp-panel text-xs text-ocp-text-dim font-mono">
-            <div className="uppercase tracking-wider mb-2 text-ocp-accent">Targets</div>
+          <div className="p-4 rounded-lg border border-ocp-border bg-ocp-panel text-xs text-ocp-dim font-mono">
+            <div className="uppercase tracking-wider mb-2 text-ocp-bright">Targets</div>
             <div>Active targets: {service.ruViewSensing.length}</div>
             {service.ruViewError && <div className="text-ocp-red mt-1">Error: {service.ruViewError}</div>}
           </div>
@@ -166,17 +166,17 @@ export function DevicesPage() {
 
       {tab === "firmware" && (
         <div className="flex flex-col gap-4 max-w-2xl p-4 rounded-lg border border-ocp-border bg-ocp-panel">
-          <span className="text-xs uppercase tracking-wider text-ocp-text-dim">Meshtastic Firmware Updater</span>
-          <p className="text-xs text-ocp-text-dim leading-relaxed">
+          <span className="text-xs uppercase tracking-wider text-ocp-dim">Meshtastic Firmware Updater</span>
+          <p className="text-xs text-ocp-dim leading-relaxed">
             Use the CLI script to list releases, download assets, and flash firmware with external tools.
           </p>
-          <code className="px-3 py-2 rounded bg-ocp-bg border border-ocp-border text-[10px] font-mono text-ocp-accent">
+          <code className="px-3 py-2 rounded bg-ocp-bg border border-ocp-border text-[10px] font-mono text-ocp-bright">
             npm run firmware:list
           </code>
-          <code className="px-3 py-2 rounded bg-ocp-bg border border-ocp-border text-[10px] font-mono text-ocp-accent">
+          <code className="px-3 py-2 rounded bg-ocp-bg border border-ocp-border text-[10px] font-mono text-ocp-bright">
             npm run firmware:flash -- --board rak4631 --tag v2.3.13.1 --port COM3
           </code>
-          <p className="text-[10px] text-ocp-text-dim">
+          <p className="text-[10px] text-ocp-dim">
             Requires <code>esptool.py</code> for ESP32 boards or <code>nrfutil</code> for nRF52/RAK4631 boards.
           </p>
         </div>

@@ -12,8 +12,8 @@ import { Link } from "react-router-dom";
 
 const items: { id: Workspace; label: string; icon: React.ElementType; path: string }[] = [
   { id: "sonar", label: "Sonar", icon: Radar, path: "/" },
-  { id: "messaging", label: "Messaging", icon: MessageSquare, path: "/messaging" },
-  { id: "network", label: "Network", icon: Network, path: "/network" },
+  { id: "messaging", label: "Msg", icon: MessageSquare, path: "/messaging" },
+  { id: "network", label: "Net", icon: Network, path: "/network" },
   { id: "devices", label: "Devices", icon: Cpu, path: "/devices" },
   { id: "spectrum", label: "Spectrum", icon: Activity, path: "/spectrum" },
   { id: "map", label: "Map", icon: Map, path: "/map" },
@@ -28,14 +28,14 @@ export function Sidebar({
   onChange: (w: Workspace) => void;
 }) {
   return (
-    <nav className="w-16 flex flex-col border-r border-ocp-border bg-ocp-panel">
-      <div className="h-14 flex items-center justify-center border-b border-ocp-border">
-        <div className="w-8 h-8 rounded-full border-2 border-ocp-accent flex items-center justify-center">
-          <span className="text-xs font-bold text-ocp-accent">O</span>
+    <nav className="w-[60px] flex flex-col border-r border-ocp-border bg-ocp-panel">
+      <div className="h-[28px] flex items-center justify-center border-b border-ocp-border">
+        <div className="w-[36px] h-[22px] rounded border border-ocp-border-2 bg-ocp-panel-2 flex items-center justify-center">
+          <span className="text-[9px] font-bold text-ocp-bright tracking-widest">OCP</span>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center gap-2 py-3">
+      <div className="flex-1 flex flex-col items-center gap-[2px] py-3">
         {items.map((item) => {
           const isActive = active === item.id;
           return (
@@ -44,21 +44,22 @@ export function Sidebar({
               to={item.path}
               onClick={() => onChange(item.id)}
               className={[
-                "group relative w-12 h-12 rounded-lg flex flex-col items-center justify-center gap-1 transition-all",
+                "w-[40px] h-[40px] rounded flex flex-col items-center justify-center transition-all",
                 "hover:bg-ocp-panel-2",
                 isActive
-                  ? "bg-ocp-panel-2 text-ocp-accent shadow-[inset_0_0_12px_rgba(0,240,160,0.15)]"
-                  : "text-ocp-text-dim",
+                  ? "bg-ocp-panel-3 text-ocp-bright border border-ocp-border-2"
+                  : "text-ocp-muted",
               ].join(" ")}
             >
-              <item.icon className="w-5 h-5" />
-              <span className="text-[8px] uppercase tracking-wider font-medium">{item.label}</span>
-              {isActive && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-ocp-accent rounded-r" />
-              )}
+              <item.icon className="w-[20px] h-[20px]" />
+              <span className="text-[8px] uppercase tracking-wider font-medium mt-[1px]">{item.label}</span>
             </Link>
           );
         })}
+      </div>
+
+      <div className="pb-3 flex flex-col items-center">
+        <div className="w-[8px] h-[8px] rounded-full bg-ocp-green" />
       </div>
     </nav>
   );

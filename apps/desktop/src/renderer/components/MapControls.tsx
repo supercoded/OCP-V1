@@ -47,7 +47,7 @@ export function MapControls({
     <div className="flex flex-col gap-3 w-56 shrink-0">
       {/* Map Source */}
       <div className="p-3 rounded border border-ocp-border bg-ocp-panel space-y-3">
-        <div className="text-xs uppercase tracking-wider text-ocp-text-dim flex items-center gap-2">
+        <div className="text-xs uppercase tracking-wider text-ocp-dim flex items-center gap-2">
           <FolderOpen className="w-3.5 h-3.5" />
           Map Source
         </div>
@@ -55,19 +55,19 @@ export function MapControls({
           {tileServerActive ? "Offline Active" : "Load Tiles"}
         </AnalogButton>
         {tileServerActive && (
-          <div className="flex items-center gap-1.5 text-[10px] text-ocp-accent font-mono">
-            <span className="w-1.5 h-1.5 rounded-full bg-ocp-accent animate-pulse" />
+          <div className="flex items-center gap-1.5 text-[10px] text-ocp-bright font-mono">
+            <span className="w-1.5 h-1.5 rounded-full bg-ocp-green animate-pulse" />
             Offline tiles loaded
           </div>
         )}
-        <div className="text-[10px] text-ocp-text-dim">
+        <div className="text-[10px] text-ocp-dim">
           Load a PMTiles or MBTiles file from disk for offline map data.
         </div>
       </div>
 
       {/* Layer Controls */}
       <div className="p-3 rounded border border-ocp-border bg-ocp-panel space-y-3">
-        <div className="text-xs uppercase tracking-wider text-ocp-text-dim flex items-center gap-2">
+        <div className="text-xs uppercase tracking-wider text-ocp-dim flex items-center gap-2">
           <Layers className="w-3.5 h-3.5" />
           Layers
         </div>
@@ -93,7 +93,7 @@ export function MapControls({
 
       {/* Navigation */}
       <div className="p-3 rounded border border-ocp-border bg-ocp-panel space-y-3">
-        <div className="text-xs uppercase tracking-wider text-ocp-text-dim flex items-center gap-2">
+        <div className="text-xs uppercase tracking-wider text-ocp-dim flex items-center gap-2">
           <Crosshair className="w-3.5 h-3.5" />
           Navigation
         </div>
@@ -114,7 +114,7 @@ export function MapControls({
       {/* Status */}
       {status && (
         <div className="p-2 rounded border border-ocp-border bg-ocp-panel">
-          <div className="text-[10px] font-mono text-ocp-text-dim uppercase tracking-wider">
+          <div className="text-[10px] font-mono text-ocp-dim uppercase tracking-wider">
             {status}
           </div>
         </div>
@@ -122,12 +122,12 @@ export function MapControls({
 
       {/* Legend */}
       <div className="p-3 rounded border border-ocp-border bg-ocp-panel space-y-2">
-        <div className="text-xs uppercase tracking-wider text-ocp-text-dim flex items-center gap-2">
+        <div className="text-xs uppercase tracking-wider text-ocp-dim flex items-center gap-2">
           <Eye className="w-3.5 h-3.5" />
           Legend
         </div>
         <div className="flex items-center gap-2 text-[10px] font-mono">
-          <div className="w-3 h-3 bg-ocp-accent rotate-45 shrink-0" style={{ boxShadow: "0 0 6px rgba(0,240,160,0.6)" }} />
+          <div className="w-3 h-3 bg-ocp-green rotate-45 shrink-0" style={{  }} />
           <span className="text-ocp-text">Meshtastic Node</span>
         </div>
         <div className="flex items-center gap-2 text-[10px] font-mono">

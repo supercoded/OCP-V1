@@ -90,6 +90,7 @@ export function OcpServiceProvider({ children }: { children: ReactNode }) {
     nodes: [],
     ruViewConnected: false,
     rtlConnected: false,
+    baofengConnected: false,
   });
   const [sensing, setSensing] = useState<RuViewSensing[]>([]);
   const [ruViewError, setRuViewError] = useState<string | undefined>(undefined);

@@ -8,24 +8,27 @@ interface WaterfallCanvasProps {
   className?: string;
 }
 
-function phosphorColor(t: number) {
+function waterfallColor(t: number) {
   // t 0..1 maps from silence (-120 dB) to hot (-20 dB).
-  // Color ramp: black → dark green → green → yellow-green → white.
-  if (t < 0.25) {
-    // black to dark green
-    const s = t / 0.25;
-    return { r: 0, g: Math.round(40 * s), b: 0 };
+  // INDI/ATA palette: black → dark gray → gray → warm amber → bright white.
+  if (t < 0.15) {
+    const s = t / 0.15;
+    return { r: Math.round(15 * s), g: Math.round(15 * s), b: Math.round(20 * s) };
   }
-  if (t < 0.6) {
-    const s = (t - 0.25) / 0.35;
-    return { r: 0, g: Math.round(40 + 175 * s), b: 0 };
+  if (t < 0.4) {
+    const s = (t - 0.15) / 0.25;
+    return { r: Math.round(15 + 35 * s), g: Math.round(15 + 35 * s), b: Math.round(20 + 30 * s) };
+  }
+  if (t < 0.65) {
+    const s = (t - 0.4) / 0.25;
+    return { r: Math.round(50 + 80 * s), g: Math.round(50 + 60 * s), b: Math.round(50 + 10 * s) };
   }
   if (t < 0.85) {
-    const s = (t - 0.6) / 0.25;
-    return { r: Math.round(255 * s), g: 215, b: 0 };
+    const s = (t - 0.65) / 0.2;
+    return { r: Math.round(130 + 80 * s), g: Math.round(110 + 50 * s), b: Math.round(60 - 10 * s) };
   }
   const s = (t - 0.85) / 0.15;
-  return { r: 255, g: 215 + Math.round(40 * s), b: Math.round(255 * s) };
+  return { r: Math.round(210 + 45 * s), g: Math.round(160 + 95 * s), b: Math.round(50 + 205 * s) };
 }
 
 export function WaterfallCanvas({
@@ -69,7 +72,7 @@ export function WaterfallCanvas({
         const bin = Math.min(bins - 1, Math.floor((x / width) * bins));
         const db = Math.max(minDb, Math.min(maxDb, mag[bin]));
         const t = (db - minDb) / (maxDb - minDb);
-        const { r, g, b } = phosphorColor(t);
+        const { r, g, b } = waterfallColor(t);
         for (let dy = 0; dy < rowHeight; dy++) {
           const y = y0 + dy;
           if (y < 0 || y >= height) continue;

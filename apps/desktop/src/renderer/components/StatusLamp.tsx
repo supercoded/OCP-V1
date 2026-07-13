@@ -7,15 +7,15 @@ export function StatusLamp({
 }) {
   const color =
     state === "active"
-      ? "bg-ocp-accent shadow-[0_0_8px_rgba(0,240,160,0.8)] animate-pulse"
+      ? "bg-ocp-green"
       : state === "on"
-        ? "bg-ocp-accent shadow-[0_0_6px_rgba(0,240,160,0.5)]"
+        ? "bg-ocp-green"
         : state === "error"
-          ? "bg-ocp-red shadow-[0_0_8px_rgba(255,51,51,0.8)]"
-          : "bg-ocp-text-dim";
+          ? "bg-ocp-red"
+          : "bg-ocp-muted";
 
   return (
-    <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-ocp-text-dim">
+    <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-ocp-dim">
       <span className={["w-2 h-2 rounded-full", color].join(" ")} />
       {label}
     </span>

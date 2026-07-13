@@ -1,1 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" rx="32" fill="#050a0e"/><circle cx="128" cy="128" r="80" fill="none" stroke="#00f0a0" stroke-width="12"/><line x1="128" y1="128" x2="128" y2="48" stroke="#00f0a0" stroke-width="12" stroke-linecap="round"/><circle cx="128" cy="128" r="10" fill="#00f0a0"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Background: dark #111 -->
+  <rect width="256" height="256" rx="32" fill="#111111"/>
+  <!-- Outer ring: bright gray #c8c8c8 -->
+  <circle cx="128" cy="128" r="80" fill="none" stroke="#c8c8c8" stroke-width="12"/>
+  <!-- Sweep arm: muted white #e8e8e8 -->
+  <line x1="128" y1="128" x2="128" y2="48" stroke="#e8e8e8" stroke-width="12" stroke-linecap="round"/>
+  <!-- Center dot: bright #e8e8e8 -->
+  <circle cx="128" cy="128" r="10" fill="#e8e8e8"/>
+  <!-- Small sweep arc hint: subtle gray -->
+  <path d="M 128 128 L 128 48 A 80 80 0 0 1 197 88 Z" fill="#333333" opacity="0.5"/>
+</svg>

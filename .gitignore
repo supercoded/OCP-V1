@@ -1,3 +1,5 @@
 node_modules/
 dist/
 out/
+docs/mockups/
+apps/desktop/build/icon-256.png

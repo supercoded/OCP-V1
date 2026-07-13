@@ -99,7 +99,7 @@ export function MessagingPage() {
       {/* Channel sidebar */}
       <div className="w-56 border-r border-ocp-border bg-ocp-panel flex flex-col">
         <div className="h-12 border-b border-ocp-border flex items-center px-4">
-          <span className="text-xs uppercase tracking-wider text-ocp-accent font-semibold">
+          <span className="text-xs uppercase tracking-wider text-ocp-bright font-semibold">
             Channels
           </span>
         </div>
@@ -127,13 +127,13 @@ export function MessagingPage() {
                     {ch.name}
                   </span>
                   {unread > 0 && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-ocp-accent text-ocp-bg font-bold">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-ocp-green text-ocp-bg font-bold">
                       {unread}
                     </span>
                   )}
                 </div>
                 {lastMsg && (
-                  <div className="text-[10px] text-ocp-text-dim truncate mt-1">
+                  <div className="text-[10px] text-ocp-dim truncate mt-1">
                     {lastMsg.outgoing ? "You: " : ""}
                     {lastMsg.text}
                   </div>
@@ -145,7 +145,7 @@ export function MessagingPage() {
 
         {/* Destination node input */}
         <div className="border-t border-ocp-border p-3">
-          <label className="text-[10px] uppercase tracking-wider text-ocp-text-dim block mb-1">
+          <label className="text-[10px] uppercase tracking-wider text-ocp-dim block mb-1">
             Destination Node
           </label>
           <input
@@ -153,7 +153,7 @@ export function MessagingPage() {
             value={destNode}
             onChange={(e) => setDestNode(e.target.value)}
             placeholder="Broadcast (empty)"
-            className="w-full px-2 py-1.5 rounded-md border border-ocp-border bg-ocp-bg text-ocp-text text-xs placeholder:text-ocp-text-dim/50 focus:outline-none focus:border-ocp-accent transition-colors"
+            className="w-full px-2 py-1.5 rounded-md border border-ocp-border bg-ocp-bg text-ocp-text text-xs placeholder:text-ocp-dim/50 focus:outline-none focus:border-ocp-bright transition-colors"
           />
         </div>
       </div>
@@ -162,11 +162,11 @@ export function MessagingPage() {
       <div className="flex-1 flex flex-col min-w-0 bg-ocp-bg">
         {/* Header */}
         <div className="h-12 border-b border-ocp-border flex items-center justify-between px-4">
-          <span className="text-sm font-semibold text-ocp-accent text-glow">
+          <span className="text-sm font-semibold text-ocp-bright ">
             {CHANNELS[activeChannel].name}
           </span>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] text-ocp-text-dim font-mono">
+            <span className="text-[10px] text-ocp-dim font-mono">
               {thread.length} messages
             </span>
             <StatusLamp
@@ -193,7 +193,7 @@ export function MessagingPage() {
         {/* Message list */}
         <div className="flex-1 overflow-auto p-4 space-y-3">
           {thread.length === 0 && (
-            <div className="text-center text-ocp-text-dim text-xs mt-8">
+            <div className="text-center text-ocp-dim text-xs mt-8">
               {connected
                 ? "No messages yet. Send one below."
                 : "Connect a Meshtastic device to start messaging."}
@@ -213,21 +213,21 @@ export function MessagingPage() {
                   className={[
                     "px-3 py-2 rounded-lg text-xs leading-relaxed",
                     isMe
-                      ? "bg-ocp-accent text-ocp-bg rounded-br-none"
+                      ? "bg-ocp-green text-ocp-bg rounded-br-none"
                       : "bg-ocp-panel-2 text-ocp-text border border-ocp-border rounded-bl-none",
                   ].join(" ")}
                 >
                   <div
                     className={[
                       "text-[10px] mb-1 font-semibold",
-                      isMe ? "text-ocp-bg/70" : "text-ocp-accent",
+                      isMe ? "text-ocp-bg/70" : "text-ocp-bright",
                     ].join(" ")}
                   >
                     {isMe ? "You" : nodeLabel(m.from, state.nodes)}
                   </div>
                   {m.text}
                 </div>
-                <div className="flex items-center gap-1.5 mt-1 text-[9px] text-ocp-text-dim font-mono">
+                <div className="flex items-center gap-1.5 mt-1 text-[9px] text-ocp-dim font-mono">
                   <span>{formatTime(m.timestamp)}</span>
                 </div>
               </div>
@@ -247,7 +247,7 @@ export function MessagingPage() {
             placeholder={
               connected ? "Type message..." : "No device connected"
             }
-            className="flex-1 px-3 py-2 rounded-md border border-ocp-border bg-ocp-bg text-ocp-text text-xs placeholder:text-ocp-text-dim/50 focus:outline-none focus:border-ocp-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 px-3 py-2 rounded-md border border-ocp-border bg-ocp-bg text-ocp-text text-xs placeholder:text-ocp-dim/50 focus:outline-none focus:border-ocp-bright disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           />
           <AnalogButton
             variant="accent"

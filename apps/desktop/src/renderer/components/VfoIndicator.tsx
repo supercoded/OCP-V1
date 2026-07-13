@@ -35,7 +35,7 @@ export function VfoIndicator({
     <div className={`absolute inset-0 pointer-events-none ${className}`}>
       {/* VFO band */}
       <div
-        className="absolute top-0 bottom-0 border-x-2 border-ocp-accent/60 bg-ocp-accent/8"
+        className="absolute top-0 bottom-0 border-x-2 border-ocp-bright/60 bg-ocp-green/8"
         style={{
           left: `${leftPct}%`,
           width: `${widthPct}%`,
@@ -43,7 +43,7 @@ export function VfoIndicator({
       />
       {/* Center frequency line */}
       <div
-        className="absolute top-0 bottom-0 w-px bg-ocp-accent/80"
+        className="absolute top-0 bottom-0 w-px bg-ocp-green/80"
         style={{
           left: `${Math.max(0, Math.min(100, vfoOffset * 100))}%`,
         }}
@@ -71,13 +71,13 @@ export function VfoReadout({
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <span className="text-[10px] uppercase tracking-wider text-ocp-text-dim">VFO</span>
-        <span className="text-xs font-mono text-ocp-accent">{freqMhz} MHz</span>
-        <span className="text-[10px] text-ocp-text-dim">@</span>
-        <span className="text-xs font-mono text-ocp-accent">{bwKhz} kHz</span>
+        <span className="text-[10px] uppercase tracking-wider text-ocp-dim">VFO</span>
+        <span className="text-xs font-mono text-ocp-bright">{freqMhz} MHz</span>
+        <span className="text-[10px] text-ocp-dim">@</span>
+        <span className="text-xs font-mono text-ocp-bright">{bwKhz} kHz</span>
       </div>
       <div className="space-y-1">
-        <label className="text-[10px] uppercase tracking-wider text-ocp-text-dim">
+        <label className="text-[10px] uppercase tracking-wider text-ocp-dim">
           VFO Bandwidth
         </label>
         <input

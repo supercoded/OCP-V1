@@ -84,7 +84,7 @@ function createNodeMarkerElement(node: NodeMarker): HTMLDivElement {
   marker.style.cssText = `
     width: 14px;
     height: 14px;
-    background: #00f0a0;
+    background: #4caf50;
     border: 2px solid #0a1f1c;
     transform: rotate(45deg);
     box-shadow: 0 0 10px rgba(0, 240, 160, 0.6), 0 0 20px rgba(0, 240, 160, 0.3);
@@ -97,9 +97,9 @@ function createNodeMarkerElement(node: NodeMarker): HTMLDivElement {
     margin-top: 2px;
     padding: 1px 4px;
     background: rgba(13, 22, 29, 0.85);
-    border: 1px solid #1e3342;
+    border: 1px solid #333333;
     border-radius: 2px;
-    color: #00f0a0;
+    color: #4caf50;
     font-size: 10px;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     white-space: nowrap;
@@ -143,7 +143,7 @@ function createSensingMarkerElement(target: SensingTarget): HTMLDivElement {
     margin-top: 2px;
     padding: 1px 4px;
     background: rgba(13, 22, 29, 0.85);
-    border: 1px solid #1e3342;
+    border: 1px solid #333333;
     border-radius: 2px;
     color: #ffaa00;
     font-size: 10px;
@@ -248,9 +248,9 @@ export function MapCanvas({
         className: "ocp-popup",
         closeButton: false,
       }).setHTML(`
-        <div style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #b8d4e3; background: #0d161d; padding: 4px 8px;">
-          <div style="color: #00f0a0; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${node.name || `Node ${node.id}`}</div>
-          <div style="margin-top: 4px; color: #5a7a8a;">ID: ${node.id}</div>
+        <div style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #c8c8c8; background: #1a1a1a; padding: 4px 8px;">
+          <div style="color: #4caf50; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${node.name || `Node ${node.id}`}</div>
+          <div style="margin-top: 4px; color: #888888;">ID: ${node.id}</div>
           ${node.rssi != null ? `<div>RSSI: ${node.rssi.toFixed(1)} dBm</div>` : ""}
           ${node.snr != null ? `<div>SNR: ${node.snr.toFixed(1)} dB</div>` : ""}
           <div>${node.lat.toFixed(4)}, ${node.lon.toFixed(4)}</div>
@@ -288,9 +288,9 @@ export function MapCanvas({
         className: "ocp-popup",
         closeButton: false,
       }).setHTML(`
-        <div style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #b8d4e3; background: #0d161d; padding: 4px 8px;">
+        <div style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #c8c8c8; background: #1a1a1a; padding: 4px 8px;">
           <div style="color: #ffaa00; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">RuView ${target.nodeId}</div>
-          <div style="margin-top: 4px; color: #5a7a8a;">Source: ${target.source}</div>
+          <div style="margin-top: 4px; color: #888888;">Source: ${target.source}</div>
           ${target.rssi != null ? `<div>RSSI: ${target.rssi.toFixed(1)} dBm</div>` : ""}
           <div>${target.lat.toFixed(4)}, ${target.lon.toFixed(4)}</div>
         </div>
@@ -319,35 +319,35 @@ export function MapCanvas({
           50% { opacity: 0.7; transform: scale(1.3); }
         }
         .maplibregl-popup-content {
-          background: #0d161d !important;
-          border: 1px solid #1e3342 !important;
+          background: #1a1a1a !important;
+          border: 1px solid #333333 !important;
           border-radius: 4px !important;
           box-shadow: 0 0 20px rgba(0, 240, 160, 0.15) !important;
           padding: 0 !important;
         }
         .maplibregl-popup-tip {
-          border-top-color: #1e3342 !important;
+          border-top-color: #333333 !important;
         }
         .maplibregl-popup-close-button {
-          color: #b8d4e3 !important;
+          color: #c8c8c8 !important;
         }
         .maplibregl-ctrl-group {
-          background: #0d161d !important;
-          border: 1px solid #1e3342 !important;
+          background: #1a1a1a !important;
+          border: 1px solid #333333 !important;
         }
         .maplibregl-ctrl-group button {
-          border-color: #1e3342 !important;
+          border-color: #333333 !important;
         }
         .maplibregl-ctrl-group button span {
           filter: invert(0.85) sepia(0.2) hue-rotate(120deg) !important;
         }
         .maplibregl-ctrl-group button:hover {
-          background: #14222d !important;
+          background: #222222 !important;
         }
         .maplibregl-ctrl-scale {
           background: rgba(13, 22, 29, 0.85) !important;
-          border-color: #1e3342 !important;
-          color: #5a7a8a !important;
+          border-color: #333333 !important;
+          color: #888888 !important;
           font-family: ui-monospace, SFMono-Regular, Menlo, monospace !important;
           font-size: 10px !important;
         }

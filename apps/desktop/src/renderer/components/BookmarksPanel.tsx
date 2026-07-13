@@ -113,12 +113,12 @@ export function BookmarksPanel({
 
   return (
     <div className="p-3 rounded border border-ocp-border bg-ocp-panel space-y-2">
-      <div className="text-xs uppercase tracking-wider text-ocp-text-dim">Bookmarks</div>
+      <div className="text-xs uppercase tracking-wider text-ocp-dim">Bookmarks</div>
 
       {/* Bookmark list */}
       <div className="space-y-1 max-h-40 overflow-y-auto">
         {bookmarks.length === 0 && (
-          <div className="text-[10px] text-ocp-text-dim italic">No bookmarks saved</div>
+          <div className="text-[10px] text-ocp-dim italic">No bookmarks saved</div>
         )}
         {bookmarks.map((bm) => (
           <div
@@ -127,20 +127,20 @@ export function BookmarksPanel({
             onClick={() => onTune(bm.frequency)}
           >
             <div className="flex-1 min-w-0">
-              <div className="text-xs text-ocp-accent font-mono truncate">{bm.label}</div>
-              <div className="text-[10px] text-ocp-text-dim font-mono">
+              <div className="text-xs text-ocp-bright font-mono truncate">{bm.label}</div>
+              <div className="text-[10px] text-ocp-dim font-mono">
                 {formatFreq(bm.frequency)} · {bm.modulation} · {(bm.bandwidth / 1e3).toFixed(0)}k
               </div>
             </div>
             <button
-              className="opacity-0 group-hover:opacity-100 text-ocp-text-dim hover:text-ocp-accent text-xs transition-opacity"
+              className="opacity-0 group-hover:opacity-100 text-ocp-dim hover:text-ocp-bright text-xs transition-opacity"
               onClick={(e) => { e.stopPropagation(); startEdit(bm); }}
               title="Edit"
             >
               ✎
             </button>
             <button
-              className="opacity-0 group-hover:opacity-100 text-ocp-text-dim hover:text-red-400 text-xs transition-opacity"
+              className="opacity-0 group-hover:opacity-100 text-ocp-dim hover:text-red-400 text-xs transition-opacity"
               onClick={(e) => { e.stopPropagation(); removeBookmark(bm.id); }}
               title="Remove"
             >
@@ -160,7 +160,7 @@ export function BookmarksPanel({
               <TextField label="BW (Hz)" value={bw} onChange={setBw} placeholder="15000" />
             </div>
             <div className="flex-1">
-              <label className="text-[10px] uppercase tracking-wider text-ocp-text-dim">Mod</label>
+              <label className="text-[10px] uppercase tracking-wider text-ocp-dim">Mod</label>
               <select
                 value={mod}
                 onChange={(e) => setMod(e.target.value)}

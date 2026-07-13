@@ -6,7 +6,7 @@ export interface Blip {
   distanceRatio: number; // 0..1 relative to maxRange
   strength: number; // 0..1
   label: string;
-  type: "meshtastic" | "wifi" | "sdr" | "baofeng" | "mock";
+  type: "meshtastic" | "wifi" | "sdr" | "baofeng" | "mock" | "ruview";
   lastHitAt: number;
 }
 
@@ -19,12 +19,14 @@ export interface SonarPPIProps {
   onSweepCycle?: () => void;
 }
 
+// INDI/ATA palette — muted, professional
 const TYPE_COLORS: Record<Blip["type"], string> = {
-  meshtastic: "#00f0a0",
-  ruview: "#ff5555",
-  sdr: "#00ccff",
-  baofeng: "#ffaa00",
-  mock: "#888888",
+  meshtastic: "#4caf50",    // green for mesh nodes
+  ruview: "#c62828",         // red for presence
+  sdr: "#4fc3f7",            // cyan for SDR
+  baofeng: "#d4a017",        // amber for radio
+  mock: "#888888",           // gray for mock
+  wifi: "#42a5f5",           // blue for wifi
 };
 
 export function SonarPPI({
@@ -54,12 +56,12 @@ export function SonarPPI({
       const cy = height / 2;
       const radius = Math.min(cx, cy) * 0.9;
 
-      // Background
-      ctx.fillStyle = "#050a0e";
+      // Background — dark #111
+      ctx.fillStyle = "#111111";
       ctx.fillRect(0, 0, width, height);
 
-      // Grid rings
-      ctx.strokeStyle = "#123040";
+      // Grid rings — subtle #333
+      ctx.strokeStyle = "#333333";
       ctx.lineWidth = dpr;
       for (let i = 1; i <= 4; i++) {
         ctx.beginPath();
@@ -76,9 +78,9 @@ export function SonarPPI({
         ctx.stroke();
       }
 
-      // Bearing labels
-      ctx.fillStyle = "#5a7a8a";
-      ctx.font = `${10 * dpr}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+      // Bearing labels — muted #666
+      ctx.fillStyle = "#666666";
+      ctx.font = `${10 * dpr}px JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, monospace`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       const labels = ["N", "30", "60", "E", "120", "150", "S", "210", "240", "W", "300", "330"];
@@ -90,8 +92,8 @@ export function SonarPPI({
       });
 
       // Range labels
-      ctx.fillStyle = "#5a7a8a";
-      ctx.font = `${9 * dpr}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+      ctx.fillStyle = "#666666";
+      ctx.font = `${9 * dpr}px JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, monospace`;
       ctx.textAlign = "left";
       for (let i = 1; i <= 4; i++) {
         const r = (radius / 4) * i;
@@ -99,7 +101,7 @@ export function SonarPPI({
         ctx.fillText(`${val}m`, cx + 4 * dpr, cy - r + 10 * dpr);
       }
 
-      // Blip afterglow (drawn as radial glow; intensity decays with time)
+      // Blips — no glow, solid dots with subtle radial gradient
       const now = performance.now();
       for (const blip of blips) {
         const age = now - blip.lastHitAt;
@@ -112,41 +114,43 @@ export function SonarPPI({
         const y = cy + Math.sin(rad) * r;
         const color = TYPE_COLORS[blip.type];
 
-        // Glow
-        const g = ctx.createRadialGradient(x, y, 0, x, y, 12 * dpr * (blip.strength + 0.4));
-        g.addColorStop(0, color);
+        // Soft halo
+        const g = ctx.createRadialGradient(x, y, 0, x, y, 10 * dpr);
+        g.addColorStop(0, color + "60");  // 37% alpha
         g.addColorStop(1, "transparent");
-        ctx.globalAlpha = decay * 0.35;
+        ctx.globalAlpha = decay;
         ctx.fillStyle = g;
         ctx.beginPath();
-        ctx.arc(x, y, 12 * dpr * (blip.strength + 0.4), 0, Math.PI * 2);
+        ctx.arc(x, y, 10 * dpr, 0, Math.PI * 2);
         ctx.fill();
 
-        // Core
+        // Core dot
         ctx.globalAlpha = decay;
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(x, y, 3 * dpr * (blip.strength + 0.5), 0, Math.PI * 2);
+        ctx.arc(x, y, 3 * dpr, 0, Math.PI * 2);
         ctx.fill();
 
-        // Label
+        // Label — bright white
         ctx.globalAlpha = decay * 0.85;
-        ctx.fillStyle = "#b8d4e3";
-        ctx.font = `${9 * dpr}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+        ctx.fillStyle = "#c8c8c8";
+        ctx.font = `${9 * dpr}px JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, monospace`;
         ctx.fillText(blip.label, x + 8 * dpr, y - 6 * dpr);
       }
       ctx.globalAlpha = 1;
 
-      // Sweep arm with trailing gradient
+      // Sweep arm — subtle bright line, no glow
       const sweepRad = ((angle - 90) * Math.PI) / 180;
+
+      // Sweep trail — subtle cone
       const gradient = ctx.createConicGradient(
         ((angle - 90) * Math.PI) / 180,
         cx,
         cy
       );
-      gradient.addColorStop(0, "rgba(0, 240, 160, 0)");
-      gradient.addColorStop(0.85, "rgba(0, 240, 160, 0)");
-      gradient.addColorStop(1, "rgba(0, 240, 160, 0.25)");
+      gradient.addColorStop(0, "rgba(200, 200, 200, 0)");
+      gradient.addColorStop(0.85, "rgba(200, 200, 200, 0)");
+      gradient.addColorStop(1, "rgba(200, 200, 200, 0.08)");
 
       ctx.fillStyle = gradient;
       ctx.beginPath();
@@ -155,16 +159,22 @@ export function SonarPPI({
       ctx.closePath();
       ctx.fill();
 
-      // Sweep leading edge
-      ctx.strokeStyle = "#00f0a0";
-      ctx.lineWidth = 2 * dpr;
-      ctx.shadowColor = "#00f0a0";
-      ctx.shadowBlur = 14 * dpr;
+      // Sweep line — white, no glow
+      ctx.strokeStyle = "#c8c8c8";
+      ctx.lineWidth = 1.5 * dpr;
       ctx.beginPath();
       ctx.moveTo(cx, cy);
       ctx.lineTo(cx + Math.cos(sweepRad) * radius, cy + Math.sin(sweepRad) * radius);
       ctx.stroke();
-      ctx.shadowBlur = 0;
+
+      // Self dot at center
+      ctx.fillStyle = "#e8e8e8";
+      ctx.beginPath();
+      ctx.arc(cx, cy, 4 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#888888";
+      ctx.font = `${8 * dpr}px JetBrains Mono, monospace`;
+      ctx.fillText("SELF", cx + 6 * dpr, cy - 2 * dpr);
     },
     [blips, size, maxRangeMeters]
   );
@@ -182,7 +192,6 @@ export function SonarPPI({
       const degPerMs = (sweepRpm * 360) / 60000;
       angleRef.current = (angleRef.current + degPerMs * dt) % 360;
 
-      // Trigger cycle callback roughly once per revolution
       if (angleRef.current < lastCycleRef.current) {
         onSweepCycle?.();
       }
@@ -202,7 +211,7 @@ export function SonarPPI({
       ref={canvasRef}
       width={size}
       height={size}
-      className="rounded-full border border-ocp-border shadow-[0_0_40px_rgba(0,240,160,0.08)]"
+      className="rounded border border-ocp-border"
       style={{ width: size, height: size }}
     />
   );

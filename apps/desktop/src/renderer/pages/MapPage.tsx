@@ -167,15 +167,15 @@ export function MapPage() {
     <div className="absolute inset-0 flex flex-col">
       {/* Header bar */}
       <div className="flex items-center justify-between px-4 py-2 bg-ocp-panel border-b border-ocp-border shrink-0">
-        <h2 className="text-lg font-semibold tracking-widest uppercase text-ocp-accent text-glow">
+        <h2 className="text-lg font-semibold tracking-widest uppercase text-ocp-bright ">
           Map
         </h2>
-        <div className="flex items-center gap-3 text-xs font-mono text-ocp-text-dim">
+        <div className="flex items-center gap-3 text-xs font-mono text-ocp-dim">
           <span className="inline-flex items-center gap-1.5">
             <span
               className={[
                 "w-1.5 h-1.5 rounded-full",
-                service.state.connected ? "bg-ocp-accent animate-pulse" : "bg-ocp-text-dim",
+                service.state.connected ? "bg-ocp-green animate-pulse" : "bg-ocp-text-dim",
               ].join(" ")}
             />
             {service.state.connected ? "Mesh linked" : "Mesh standby"}
@@ -202,7 +202,7 @@ export function MapPage() {
             className="w-full h-full"
           />
           {/* Map overlay info */}
-          <div className="absolute bottom-3 left-3 text-[10px] font-mono text-ocp-text-dim bg-ocp-bg/80 px-2 py-1 rounded">
+          <div className="absolute bottom-3 left-3 text-[10px] font-mono text-ocp-dim bg-ocp-bg/80 px-2 py-1 rounded">
             {status}
           </div>
         </div>

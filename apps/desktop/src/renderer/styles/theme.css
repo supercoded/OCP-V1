@@ -2,45 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
-/* CRT scanline + vignette overlay */
-.ocp-crt::before {
-  content: "";
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  background:
-    repeating-linear-gradient(
-      0deg,
-      rgba(0, 0, 0, 0.12),
-      rgba(0, 0, 0, 0.12) 1px,
-      transparent 1px,
-      transparent 4px
-    ),
-    radial-gradient(circle at center, transparent 50%, rgba(0, 0, 0, 0.55) 100%);
-  z-index: 50;
-}
+/* INDI/ATA-style dark interface — clean, dense, muted */
+/* No CRT effects, no glow, no phosphor — professional operator console */
 
-/* Phosphor glow helpers */
-.text-glow {
-  text-shadow: 0 0 8px rgba(0, 240, 160, 0.45);
-}
-
-.box-glow {
-  box-shadow: 0 0 18px rgba(0, 240, 160, 0.12);
-}
-
-/* Custom scrollbar for submarine feel */
+/* Custom scrollbar — minimal, dark */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0d161d;
+  background: #111111;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e3342;
+  background: #333333;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #5a7a8a;
+  background: #444444;
+}
+
+/* Selection highlight */
+::selection {
+  background: #4fc3f7;
+  color: #111111;
 }

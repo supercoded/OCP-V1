@@ -96,7 +96,7 @@ export function SpectrumCanvas({
       ctx.setLineDash([]);
     }
 
-    // Peak-hold overlay (amber/orange phosphor)
+    // Peak-hold overlay (amber/warm ramp)
     if (peakHold && peakHoldMagnitudes && peakHoldMagnitudes.length === len) {
       ctx.beginPath();
       for (let i = 0; i < len; i++) {

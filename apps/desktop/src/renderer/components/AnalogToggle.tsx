@@ -14,14 +14,14 @@ export function AnalogToggle({
       className={[
         "flex items-center gap-3 px-3 py-2 rounded-md border transition-all",
         checked
-          ? "border-ocp-accent bg-ocp-panel-2 text-ocp-accent shadow-[0_0_12px_rgba(0,240,160,0.15)]"
-          : "border-ocp-border bg-ocp-panel text-ocp-text-dim hover:border-ocp-text-dim",
+          ? "border-ocp-bright bg-ocp-panel-2 text-ocp-bright "
+          : "border-ocp-border bg-ocp-panel text-ocp-dim hover:border-ocp-text-dim",
       ].join(" ")}
     >
       <span
         className={[
           "w-8 h-4 rounded-full relative transition-colors",
-          checked ? "bg-ocp-accent" : "bg-ocp-border",
+          checked ? "bg-ocp-green" : "bg-ocp-border",
         ].join(" ")}
       >
         <span

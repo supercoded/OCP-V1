@@ -172,7 +172,7 @@ export function BaofengChannelEditor({
       {/* Connection controls */}
       <div className="p-4 rounded-lg border border-ocp-border bg-ocp-panel flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs uppercase tracking-wider text-ocp-text-dim font-semibold">
+          <span className="text-xs uppercase tracking-wider text-ocp-dim font-semibold">
             Baofeng UV-5RM Serial Connection
           </span>
           <StatusLamp
@@ -183,14 +183,14 @@ export function BaofengChannelEditor({
 
         <div className="flex gap-3 items-end">
           <div className="flex flex-col gap-1 flex-1">
-            <label className="text-[10px] uppercase tracking-wider text-ocp-text-dim">Serial Port</label>
+            <label className="text-[10px] uppercase tracking-wider text-ocp-dim">Serial Port</label>
             <input
               type="text"
               value={serialPort}
               onChange={(e) => setSerialPort(e.target.value)}
               disabled={baofengConnected || isBusy}
               placeholder="/dev/ttyUSB0"
-              className="px-3 py-2 rounded-md border border-ocp-border bg-ocp-panel-2 text-ocp-text text-xs font-mono placeholder:text-ocp-text-dim/50 focus:outline-none focus:border-ocp-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-2 rounded-md border border-ocp-border bg-ocp-panel-2 text-ocp-text text-xs font-mono placeholder:text-ocp-dim/50 focus:outline-none focus:border-ocp-bright transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -242,7 +242,7 @@ export function BaofengChannelEditor({
       {isBusy && (
         <div className="w-full h-2 bg-ocp-panel-2 rounded-full overflow-hidden">
           <div
-            className="h-full bg-ocp-accent transition-all duration-300 rounded-full"
+            className="h-full bg-ocp-green transition-all duration-300 rounded-full"
             style={{ width: `${progressPct}%` }}
           />
         </div>
@@ -254,7 +254,7 @@ export function BaofengChannelEditor({
           <div className="text-xs uppercase tracking-wider text-ocp-amber font-semibold">
             ⚠ Confirm Write — This will overwrite radio memory
           </div>
-          <p className="text-xs text-ocp-text-dim">
+          <p className="text-xs text-ocp-dim">
             Writing to the Baofeng UV-5RM is irreversible. Make sure you have a backup of the current channel data.
             {warnings.size > 0 && ` ${warnings.size} channel(s) have out-of-band warnings.`}
           </p>
@@ -273,16 +273,16 @@ export function BaofengChannelEditor({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-ocp-panel-2 border-b border-ocp-border">
-                <th className="px-2 py-2 text-[10px] uppercase tracking-wider text-ocp-text-dim font-semibold text-center w-10">#</th>
-                <th className="px-1 py-2 text-[10px] uppercase tracking-wider text-ocp-text-dim font-semibold">RX Freq</th>
-                <th className="px-1 py-2 text-[10px] uppercase tracking-wider text-ocp-text-dim font-semibold">TX Freq</th>
-                <th className="px-1 py-2 text-[10px] uppercase tracking-wider text-ocp-text-dim font-semibold">Dup</th>
-                <th className="px-1 py-2 text-[10px] uppercase tracking-wider text-ocp-text-dim font-semibold">Tone</th>
-                <th className="px-1 py-2 text-[10px] uppercase tracking-wider text-ocp-text-dim font-semibold">RX Tone</th>
-                <th className="px-1 py-2 text-[10px] uppercase tracking-wider text-ocp-text-dim font-semibold">TX Tone</th>
-                <th className="px-1 py-2 text-[10px] uppercase tracking-wider text-ocp-text-dim font-semibold">Name</th>
-                <th className="px-1 py-2 text-[10px] uppercase tracking-wider text-ocp-text-dim font-semibold">Pwr</th>
-                <th className="px-1 py-2 text-[10px] uppercase tracking-wider text-ocp-text-dim font-semibold">BW</th>
+                <th className="px-2 py-2 text-[10px] uppercase tracking-wider text-ocp-dim font-semibold text-center w-10">#</th>
+                <th className="px-1 py-2 text-[10px] uppercase tracking-wider text-ocp-dim font-semibold">RX Freq</th>
+                <th className="px-1 py-2 text-[10px] uppercase tracking-wider text-ocp-dim font-semibold">TX Freq</th>
+                <th className="px-1 py-2 text-[10px] uppercase tracking-wider text-ocp-dim font-semibold">Dup</th>
+                <th className="px-1 py-2 text-[10px] uppercase tracking-wider text-ocp-dim font-semibold">Tone</th>
+                <th className="px-1 py-2 text-[10px] uppercase tracking-wider text-ocp-dim font-semibold">RX Tone</th>
+                <th className="px-1 py-2 text-[10px] uppercase tracking-wider text-ocp-dim font-semibold">TX Tone</th>
+                <th className="px-1 py-2 text-[10px] uppercase tracking-wider text-ocp-dim font-semibold">Name</th>
+                <th className="px-1 py-2 text-[10px] uppercase tracking-wider text-ocp-dim font-semibold">Pwr</th>
+                <th className="px-1 py-2 text-[10px] uppercase tracking-wider text-ocp-dim font-semibold">BW</th>
                 <th className="px-1 py-2 w-4"></th>
               </tr>
             </thead>
@@ -302,13 +302,13 @@ export function BaofengChannelEditor({
       </div>
 
       {/* Footer info */}
-      <div className="flex justify-between text-[10px] text-ocp-text-dim font-mono">
+      <div className="flex justify-between text-[10px] text-ocp-dim font-mono">
         <span>128 channels · VHF 136–174 MHz · UHF 400–520 MHz</span>
         <span>Selected: CH{selectedChannel + 1} {channels[selectedChannel]?.name || ""}</span>
         <button
           type="button"
           onClick={handleClearChannel}
-          className="text-ocp-amber hover:text-ocp-accent transition-colors"
+          className="text-ocp-amber hover:text-ocp-bright transition-colors"
         >
           Clear channel
         </button>

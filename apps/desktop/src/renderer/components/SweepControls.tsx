@@ -23,12 +23,12 @@ export function SweepControls({
 }: SweepControlsProps) {
   return (
     <div className="flex flex-col gap-4 p-4 border-l border-ocp-border bg-ocp-panel min-w-[240px]">
-      <div className="text-xs uppercase tracking-widest text-ocp-accent font-semibold mb-1">
+      <div className="text-xs uppercase tracking-widest text-ocp-bright font-semibold mb-1">
         Sweep Control
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-[10px] uppercase tracking-wider text-ocp-text-dim">
+        <label className="text-[10px] uppercase tracking-wider text-ocp-dim">
           Sweep Speed: {sweepRpm} RPM
         </label>
         <input
@@ -43,7 +43,7 @@ export function SweepControls({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-[10px] uppercase tracking-wider text-ocp-text-dim">
+        <label className="text-[10px] uppercase tracking-wider text-ocp-dim">
           Max Range: {maxRangeMeters} m
         </label>
         <input

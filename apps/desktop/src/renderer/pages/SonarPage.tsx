@@ -26,6 +26,7 @@ export function SonarPage() {
     ruview: true,
     sdr: true,
     baofeng: true,
+    wifi: true,
     mock: true,
   });
 
@@ -122,10 +123,10 @@ export function SonarPage() {
             maxRangeMeters={maxRangeMeters}
             onSweepCycle={() => ping()}
           />
-          <div className="absolute top-4 left-4 text-[10px] font-mono text-ocp-text-dim uppercase tracking-widest">
+          <div className="absolute top-4 left-4 text-[10px] font-mono text-ocp-dim uppercase tracking-widest">
             Plan Position Indicator
           </div>
-          <div className="absolute bottom-4 left-4 text-[10px] font-mono text-ocp-text-dim">
+          <div className="absolute bottom-4 left-4 text-[10px] font-mono text-ocp-dim">
             Nodes: {service.state.nodeCount} · RuView: {service.ruViewSensing.length}
           </div>
         </div>

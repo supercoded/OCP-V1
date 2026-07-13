@@ -15,7 +15,7 @@ async function createWindow() {
     minHeight: 600,
     title: "OCP-V1",
     darkTheme: true,
-    backgroundColor: "#050a0e",
+    backgroundColor: "#111111",
     webPreferences: {
       preload: path.join(__dirname, "../preload/preload.js"),
       contextIsolation: true,
