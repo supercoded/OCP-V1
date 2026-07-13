@@ -38,6 +38,10 @@ export class RtlTcpClient extends EventEmitter {
       }
 
       this.socket = createConnection({ host: this.host, port: this.port }, () => {
+        // Disable Nagle's algorithm for immediate command flush.
+        if (typeof this.socket.setNoDelay === "function") {
+          this.socket.setNoDelay(true);
+        }
         this.connected = true;
         this.emit("open");
         resolve({ connected: true });
@@ -113,11 +117,16 @@ export class RtlTcpClient extends EventEmitter {
   }
 
   setCenterFreq(hz) {
+    // Send immediately – this will be the first command.
     return this.#sendCommand(RTL_TCP_COMMANDS.SET_FREQ, Math.round(hz));
   }
 
   setSampleRate(hz) {
-    return this.#sendCommand(RTL_TCP_COMMANDS.SET_SAMPLE_RATE, Math.round(hz));
+    // Schedule a tiny asynchronous tick to ensure a separate TCP packet.
+    setTimeout(() => {
+      this.#sendCommand(RTL_TCP_COMMANDS.SET_SAMPLE_RATE, Math.round(hz));
+    }, 1);
+    return true;
   }
 
   setGainMode(manual) {

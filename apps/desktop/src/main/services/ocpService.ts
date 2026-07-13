@@ -3,6 +3,7 @@ import { NetworkState } from "@ocp/network";
 import { discoverTransport } from "@ocp/offline-core";
 import { RuViewClient } from "@ocp/tools-ruview";
 import { RtlTcpClient, SpectrumProcessor } from "@ocp/tools-rtlsdr";
+import { PmtilesServer } from "@ocp/maps";
 
 export interface SonarNode {
   id: number;
@@ -39,11 +40,16 @@ export class OcpService {
   networkState = new NetworkState({ nodeTimeoutMs: 60_000 });
   ruview?: RuViewClient;
   transport: any = null;
+  /** Holds a lightweight history of text messages for the UI */
+  messageHistory: any[] = [];
   interval?: ReturnType<typeof setInterval>;
   lastState?: OcpState;
 
   rtlClient?: RtlTcpClient;
   rtlProcessor?: SpectrumProcessor;
+  // Map server for offline PMTiles handling
+  mapServer?: PmtilesServer;
+  mapPort?: number;
 
   start() {
     this.#registerIpc();
@@ -69,6 +75,22 @@ export class OcpService {
         this.transport.on("frame", (frame: any) => {
           if (frame.packet) this.networkState.onPacket(frame.packet);
           if (frame.nodeInfo) this.networkState.onNodeInfo(frame.nodeInfo);
+          // Auto-forward text messages to the renderer
+          if (frame?.packet?.decoded?.portnum === "TEXT_MESSAGE_APP") {
+            const msg = {
+              id: frame.packet.id,
+              text: frame.packet.decoded.text ?? "",
+              from: frame.packet.from,
+              to: frame.packet.to,
+              channel: 0,
+              timestamp: Date.now(),
+              outgoing: false,
+            };
+            this.messageHistory.push(msg);
+            BrowserWindow.getAllWindows().forEach((win) => {
+              win.webContents.send("ocp:message:received", msg);
+            });
+          }
         });
         this.#emit();
         return { ok: true, kind: this.transport.kind, endpoint: this.transport.endpoint };
@@ -203,6 +225,101 @@ export class OcpService {
     });
 
     ipcMain.handle("ocp:state", () => this.#state());
+
+    // ---------------------------------------------------------------------
+    // Messaging IPC – expose Meshtastic text messaging to the renderer
+    // ---------------------------------------------------------------------
+    ipcMain.handle("ocp:message:send", async (_evt: IpcMainInvokeEvent, params: any) => {
+      const { text, channel = 0, destinationNodeId } = params ?? {};
+      if (!this.transport?.connected) {
+        return { ok: false, error: "No Meshtastic transport connected" };
+      }
+      if (!text || typeof text !== "string" || !text.trim()) {
+        return { ok: false, error: "Message text required" };
+      }
+      try {
+        const packet: any = {
+          to: destinationNodeId ?? 0,
+          id: Date.now() & 0xffff,
+          hopLimit: 3,
+          decoded: {
+            portnum: "TEXT_MESSAGE_APP",
+            text,
+          },
+        };
+        await this.transport.sendFrame({ packet });
+        // Record locally for UI history (outgoing)
+        const msg = {
+          id: packet.id,
+          text,
+          from: "you",
+          to: destinationNodeId ?? 0,
+          channel,
+          timestamp: Date.now(),
+          outgoing: true,
+        };
+        this.messageHistory.push(msg);
+        return { ok: true };
+      } catch (err: any) {
+        return { ok: false, error: err.message };
+      }
+    });
+
+    ipcMain.handle("ocp:message:onReceive", async () => {
+      if (!this.transport) return { ok: false, error: "Transport not initialized" };
+      const forward = (frame: any) => {
+        if (!frame?.packet?.decoded) return;
+        const decoded = frame.packet.decoded;
+        if (decoded.portnum !== "TEXT_MESSAGE_APP") return;
+        const msg = {
+          id: frame.packet.id,
+          text: decoded.text ?? "",
+          from: frame.packet.from,
+          to: frame.packet.to,
+          channel: 0,
+          timestamp: Date.now(),
+          outgoing: false,
+        };
+        this.messageHistory.push(msg);
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send("ocp:message:received", msg);
+        });
+      };
+      this.transport.on("frame", forward);
+      return { ok: true };
+    });
+
+    ipcMain.handle("ocp:message:getHistory", async () => {
+      return { ok: true, history: this.messageHistory };
+    });
+
+    // Map server IPC handlers
+    ipcMain.handle("ocp:map:start", async (_evt: IpcMainInvokeEvent, filePath: string) => {
+      try {
+        // Stop any existing server first
+        if (this.mapServer) {
+          await this.mapServer.stop();
+          this.mapServer = undefined;
+          this.mapPort = undefined;
+        }
+        const server = new PmtilesServer(filePath);
+        const port = await server.start();
+        this.mapServer = server;
+        this.mapPort = port;
+        return { ok: true, port };
+      } catch (err: any) {
+        return { ok: false, error: err.message };
+      }
+    });
+
+    ipcMain.handle("ocp:map:stop", async () => {
+      if (this.mapServer) {
+        await this.mapServer.stop();
+        this.mapServer = undefined;
+        this.mapPort = undefined;
+      }
+      return { ok: true };
+    });
   }
 
   #stopRtl() {
@@ -237,6 +354,7 @@ export class OcpService {
       rtlSampleRate: this.rtlProcessor?.sampleRate,
       rtlHost: (this.rtlClient as any)?.host,
       rtlPort: (this.rtlClient as any)?.port,
+      mapPort: this.mapPort,
     };
   }
 

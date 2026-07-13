@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { OcpService } from "./main/services/ocpService.js";
@@ -48,3 +48,19 @@ app.on("window-all-closed", () => {
 
 // IPC handlers for main-process APIs will go here.
 ipcMain.handle("ocp:ping", () => "pong");
+
+// File dialog for loading map tiles
+ipcMain.handle(
+  "ocp:dialog:openFile",
+  async (_evt, opts: { title?: string; filters?: { name: string; extensions: string[] }[]; properties?: string[] }) => {
+    const result = await dialog.showOpenDialog({
+      title: opts?.title || "Open Map Tiles",
+      filters: opts?.filters || [{ name: "Map Tiles", extensions: ["pmtiles", "mbtiles", "mvt"] }],
+      properties: opts?.properties || ["openFile"],
+    });
+    if (result.canceled || result.filePaths.length === 0) {
+      return { ok: false, canceled: true };
+    }
+    return { ok: true, filePath: result.filePaths[0] };
+  }
+);

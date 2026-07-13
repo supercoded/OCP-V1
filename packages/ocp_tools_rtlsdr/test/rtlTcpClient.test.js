@@ -1,4 +1,4 @@
-import { describe, it } from "node:test";
+import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { createServer } from "net";
 import { RtlTcpClient, RTL_TCP_COMMANDS } from "../src/rtlTcpClient.js";

@@ -25,6 +25,12 @@ const ocpAPI = {
   startRtlMock: (cfg?: { centerFreq?: number; sampleRate?: number; carriers?: { freqOffset: number; amplitude: number }[] }) =>
     ipcRenderer.invoke("ocp:rtl:mock", cfg ?? {}),
 
+  // Map server control
+  startMap: (filePath: string) => ipcRenderer.invoke("ocp:map:start", filePath),
+  stopMap: () => ipcRenderer.invoke("ocp:map:stop"),
+  openFileDialog: (opts: { title?: string; filters?: { name: string; extensions: string[] }[]; properties?: string[] }) =>
+    ipcRenderer.invoke("ocp:dialog:openFile", opts),
+
   onState: (cb: (state: any) => void) => {
     const listener = (_evt: Electron.IpcRendererEvent, state: any) => cb(state);
     ipcRenderer.on("ocp:state:update", listener);
@@ -50,6 +56,16 @@ const ocpAPI = {
     ipcRenderer.on("ocp:rtl:error", listener);
     return () => ipcRenderer.off("ocp:rtl:error", listener);
   },
+  // Messaging APIs
+  sendMessage: (params: { text: string; channel?: number; destinationNodeId?: number }) =>
+    ipcRenderer.invoke("ocp:message:send", params),
+  onMessageReceived: (cb: (msg: any) => void) => {
+    const listener = (_evt: Electron.IpcRendererEvent, msg: any) => cb(msg);
+    ipcRenderer.on("ocp:message:received", listener);
+    // Return a cleanup function
+    return () => ipcRenderer.off("ocp:message:received", listener);
+  },
+  getMessageHistory: () => ipcRenderer.invoke("ocp:message:getHistory"),
 };
 
 contextBridge.exposeInMainWorld("ocp", ocpAPI);

@@ -18,6 +18,7 @@ export interface OcpState {
   rtlSampleRate?: number;
   rtlHost?: string;
   rtlPort?: number;
+  mapPort?: number;
 }
 
 export interface RuViewSensing {
@@ -54,6 +55,18 @@ interface OcpServiceAPI {
   startRtlMock: (cfg?: { centerFreq?: number; sampleRate?: number; carriers?: { freqOffset: number; amplitude: number }[] }) => Promise<{ ok: boolean; error?: string }>;
   rtlSpectrum: SpectrumFrame[];
   rtlError?: string;
+  mapPort?: number;
+  // Map server
+  startMap: (filePath: string) => Promise<{ ok: boolean; port?: number; error?: string }>;
+  stopMap: () => Promise<{ ok: boolean }>;
+  // File dialog
+  openFileDialog: (opts?: { title?: string; filters?: { name: string; extensions: string[] }[]; properties?: string[] }) =>
+    Promise<{ ok: boolean; canceled?: boolean; filePath?: string; error?: string }>;
+  // Messaging API
+  messages: any[];
+  sendMessage: (params: { text: string; channel?: number; destinationNodeId?: number }) => Promise<{ ok: boolean; error?: string }>;
+  getMessageHistory: () => Promise<{ ok: boolean; history?: any[] }>;
+  sendError?: string;
 }
 
 const OcpServiceContext = createContext<OcpServiceAPI | null>(null);
@@ -70,6 +83,7 @@ export function OcpServiceProvider({ children }: { children: ReactNode }) {
   const [ruViewError, setRuViewError] = useState<string | undefined>(undefined);
   const [rtlSpectrum, setRtlSpectrum] = useState<SpectrumFrame[]>([]);
   const [rtlError, setRtlError] = useState<string | undefined>(undefined);
+  const [mapPort, setMapPort] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     const api = (window as any).ocp;
@@ -155,6 +169,85 @@ export function OcpServiceProvider({ children }: { children: ReactNode }) {
     return result;
   }, []);
 
+  const startMap = useCallback(async (filePath: string) => {
+    const api = (window as any).ocp;
+    if (!api) return { ok: false, error: "OCP API not available" };
+    const result = await api.startMap(filePath);
+    if (result.ok && result.port) setMapPort(result.port);
+    return result;
+  }, []);
+
+  const stopMap = useCallback(async () => {
+    const api = (window as any).ocp;
+    if (!api) return { ok: false, error: "OCP API not available" };
+    const result = await api.stopMap();
+    if (result.ok) setMapPort(undefined);
+    return result;
+  }, []);
+
+  const openFileDialog = useCallback(async (opts?: { title?: string; filters?: { name: string; extensions: string[] }[]; properties?: string[] }) => {
+    const api = (window as any).ocp;
+    if (!api) return { ok: false, error: "OCP API not available" };
+    return await api.openFileDialog(opts ?? {});
+  }, []);
+
+  // --- Messaging state ---
+  const [messages, setMessages] = useState<any[]>([]);
+  const [sendError, setSendError] = useState<string | undefined>(undefined);
+
+  // Subscribe to incoming messages on mount
+  useEffect(() => {
+    const api = (window as any).ocp;
+    if (!api) return;
+
+    // Load existing history
+    api.getMessageHistory().then((res: any) => {
+      if (res?.ok && res.history) setMessages(res.history);
+    });
+
+    // Subscribe to incoming messages
+    const unsubMessages = api.onMessageReceived((msg: any) => {
+      setMessages((prev) => [...prev, msg]);
+    });
+
+    return () => {
+      unsubMessages?.();
+    };
+  }, []);
+
+  const sendMessage = useCallback(async (params: { text: string; channel?: number; destinationNodeId?: number }) => {
+    const api = (window as any).ocp;
+    if (!api) return { ok: false, error: "OCP API not available" };
+    setSendError(undefined);
+    const result = await api.sendMessage(params);
+    if (!result.ok) {
+      setSendError(result.error);
+    } else {
+      // Optimistically add the sent message to the local list
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() & 0xffff,
+          text: params.text,
+          from: "you",
+          to: params.destinationNodeId ?? 0,
+          channel: params.channel ?? 0,
+          timestamp: Date.now(),
+          outgoing: true,
+        },
+      ]);
+    }
+    return result;
+  }, []);
+
+  const getMessageHistory = useCallback(async () => {
+    const api = (window as any).ocp;
+    if (!api) return { ok: false };
+    const result = await api.getMessageHistory();
+    if (result?.ok && result.history) setMessages(result.history);
+    return result;
+  }, []);
+
   return (
     <OcpServiceContext.Provider
       value={{
@@ -169,10 +262,21 @@ export function OcpServiceProvider({ children }: { children: ReactNode }) {
         disconnectRtl,
         setRtlFreq,
         setRtlGain,
-        startRtlMock,
-        rtlSpectrum,
-        rtlError,
-      }}
+      startRtlMock,
+      rtlSpectrum,
+      rtlError,
+      mapPort,
+      // Map functions
+      startMap,
+      stopMap,
+      // File dialog
+      openFileDialog,
+      // Messaging
+      messages,
+      sendMessage,
+      getMessageHistory,
+      sendError,
+    }}
     >
       {children}
     </OcpServiceContext.Provider>
