@@ -5,9 +5,8 @@
 **Process:** BMAD-style via workspace `_bmad/`
 
 ## Stack
-- Flutter/Dart target monorepo (per specs)
-- Current scaffold: Node.js/JS for desktop/mobile shells + offline-core + bridge
-- **UI:** Electron + React + TypeScript + Tailwind CSS + Radix UI primitives, analog/submarine/sonar aesthetic
+- Electron + React + TypeScript + Tailwind CSS desktop app (primary)
+- Flutter/Dart cross-platform app (migrating)
 - Meshtastic protobufs via `protobufjs`
 - JSON offline store with `LocalKeyCipher`
 - npm workspaces
@@ -16,107 +15,85 @@
 
 ### Phase 0 — Scaffolding ✅
 - Monorepo layout in `apps/`, `packages/`, `specs/`, `scripts/`, `test/`
-- README, package.json, build scripts
 
 ### Phase 1 — Core Services & Storage ✅
-- `packages/offline-core/src/storage/jsonFileOfflineStore.js`
-- `packages/offline-core/src/storage/localKeyCipher.js`
-- `packages/offline-core/src/index.js`
+- `packages/offline-core/` — JSON file store, local key cipher
 
-### Phase 2 — ODP Protocol (mock-supported) ✅
-- `packages/offline-core/src/protocol/models.js`
-- `packages/offline-core/src/protocol/phoneApiClient.js`
+### Phase 2 — ODP Protocol ✅
+- `packages/offline-core/src/protocol/` — models, phone API client
 
 ### Phase 3 — Transport Layer ✅
-- `packages/offline-core/src/transport/transportConnection.js`
-- `packages/offline-core/src/transport/tcpTransportConnection.js`
-- `packages/offline-core/src/transport/serialTransportConnection.js`
-- `packages/offline-core/src/transport/bleTransportConnection.js`
-- `packages/offline-core/src/transport/transportDiscovery.js` — auto-detect TCP → serial → BLE
+- TCP, serial, BLE transports + auto-discovery
 
 ### Phase 4 — Meshtastic Bridge ✅
-- `packages/ocp_bridge_meshtastic/src/meshtasticCodec.js`
-- `packages/ocp_bridge_meshtastic/src/meshtasticTransport.js`
-- `packages/ocp_bridge_meshtastic/src/firmwareUpdater.js`
-- `scripts/update-meshtastic-firmware.js`
-- `test-rak-connection.js`
-- `example-bridge.js`
+- Codec, transport, firmware updater
 
-### Phase 5 — ONP / Network Layer ✅ (first pass)
-- `packages/ocp_network/` with NetworkState, RouteTable, onpCodec
-- Wired into `meshtasticTransport.js`
+### Phase 5 — ONP / Network Layer ✅
+- NetworkState, RouteTable, onpCodec
 
-### Phase 6 — UI — IN PROGRESS ✅ shell + sonar + devices + messaging + settings + spectrum + packaging config built
-- `apps/desktop/` Electron + React + Tailwind + Radix UI app shell.
-- Submarine CIC theme with dark phosphor colors, CRT scanline overlay class, glow helpers.
-- Left sidebar navigation with 7 workspaces: Sonar, Messaging, Network, Devices, Spectrum, Map, Settings.
-- **SonarPPI** canvas component — rotating sweep arm, range rings, bearing grid, blips with afterglow, sweep-speed and range controls, optional audio ping per revolution.
-- **Real data wiring:**
-  - Electron main-process `OcpService` connects `NetworkState` + `RuViewClient` + `discoverTransport` + `RtlTcpClient`/`SpectrumProcessor`.
-  - IPC APIs: `ocp:connect`, `ocp:disconnect`, `ocp:ruview:start`, `ocp:ruview:stop`, `ocp:rtl:connect`, `ocp:rtl:disconnect`, `ocp:rtl:setFreq`, `ocp:rtl:setGain`, `ocp:rtl:mock`, `ocp:state`.
-  - Renderer `OcpServiceContext` consumes IPC state + RuView sensing events + RTL-SDR spectrum frames.
-  - SonarPPI renders real `NetworkState` nodes and RuView presence targets as blips.
-  - Replaced the `howmanypeoplearearound` Wi-Fi probe tracker with RuView Wi-Fi CSI sensing.
-- **Devices workspace** built with four tabs:
-  - Connections: auto-detect/manual TCP/serial/BLE inputs, connect/disconnect, status lamp, node count.
-  - RuView: host/port input, start/stop streaming, target count, simulator hint.
-  - Firmware: CLI hints for `npm run firmware:list` / `npm run firmware:flash`.
-  - Baofeng: placeholder for CHIRP-style memory editor.
-- **Messaging workspace** built with:
-  - Channel list with unread badges.
-  - Message thread with sender bubbles, timestamps, delivery status.
-  - Compose input + send button.
-  - Mock data for now; ready for real ODP/Meshtastic integration.
-- **Settings workspace** built with:
-  - Live connection status summary.
-  - External tool checklist (`esptool.py`, `nrfutil`, RTL-SDR, RuView Docker) with install commands.
-- **Spectrum workspace** built with:
-  - `RtlTcpClient` connecting to `rtl_tcp` over TCP (5-byte BE command protocol, 12-byte `RTL0` dongle_info header, interleaved uint8 I/Q).
-  - `SpectrumProcessor` using `kissfft-js` WASM FFT with Hann window, dB magnitude, center-shifted bins.
-  - `MockRtlSource` synthetic carrier/noise generator for offline UI testing.
-  - `SpectrumCanvas` live FFT trace and `WaterfallCanvas` scrolling frequency-time history with phosphor color ramp.
-  - Source controls: host/port, center frequency, gain mode/value, mock signal button.
-  - Package `packages/ocp_tools_rtlsdr` with unit tests.
-- **Windows packaging** configured:
-  - `electron-builder.yml` with NSIS installer + portable executable targets.
-  - GitHub Actions workflow `.github/workflows/build-windows.yml` builds and releases `.exe` on tagged releases.
-  - `apps/desktop/README.md` with download instructions.
-- Stub pages for Network/Map.
-- Desktop app builds successfully (`npm run desktop:build`) and local Linux unpack succeeded.
+### Phase 6 — Desktop UI ✅
+- Electron + React + Tailwind app shell with submarine/CIC dark aesthetic
+- 7 workspaces: Sonar, Messaging, Network, Devices, Spectrum, Map, Settings
+- SonarPPI canvas with real node/blip rendering
+- Messaging wired to real Meshtastic transport
+- Network node table with live state
+- Devices workspace (Connections, RuView, Firmware, Baofeng tabs)
+- RTL-SDR spectrum with FFT + waterfall + bookmarks + peak hold + VFO + recording
+- MapLibre offline map with node markers and RuView sensing overlay + PMTiles server
+- Baofeng channel editor with serial read/write
+- Settings with connection status and tool checklist
+- Windows NSIS installer + Linux AppImage/deb packaging
 
-### Tools — RuView Wi-Fi CSI adapter ✅
-- New package `packages/ocp_tools_ruview`.
-- WebSocket client for RuView sensing server (`ws://host:3001/ws/sensing`).
-- Parses `sensing_update` frames, emits presence events.
-- Unit tests with mock WebSocket server.
-- Simulator script: `scripts/run-ruview-simulator.sh`.
+### Phase 7 — Flutter Migration ✅ (4 phases)
 
-## Research completed
+#### Flutter Phase 1 — Scaffold ✅
+- `apps/ocp_app/` Flutter project structure
+- `packages/ocp_flutter_core/` shared theme package (OcpColors, OcpTheme, OcpTextStyles)
+- Submarine/CIC dark aesthetic ported to Flutter
+- OcpScaffold with sidebar navigation
+- StatusLamp, AnalogButton, SidebarNavigation widgets
+- Android platform dirs
+- SonarPPI CustomPainter with sweep, blips, afterglow
 
-| Topic | Status | Source file |
-|---|---|---|
-| Meshtastic / RAK serial-protobuf API | ✅ | `RESEARCH_LOG.md` |
-| Baofeng UV-5RM programming protocol | ✅ | `RESEARCH_LOG.md` |
-| RTL-SDR spectrum implementation | ✅ | `RESEARCH_LOG.md`, `DECISION_LOG.md` |
-| Offline maps (MapLibre / MBTiles) | ✅ | `RESEARCH_LOG.md` |
-| iOS USB/BLE bridge limitations | ✅ | `RESEARCH_LOG.md` |
-| Windows desktop packaging | ✅ | `RESEARCH_LOG.md` |
-| UI / workspace design | ✅ | `docs/ui/WORKSPACE_DESIGN.md` |
-| RuView Wi-Fi CSI sensing | ✅ | `RESEARCH_LOG.md` |
+#### Flutter Phase 2 — Real Pages ✅
+- All 6 placeholder pages replaced with real implementations
+- MessagingPage: channels, send/receive, auto-scroll, error banners
+- NetworkPage: node table (ID, name, role, SNR, last heard), tap-to-highlight
+- DevicesPage: 4 tabs (Connections, RuView, Firmware, Baofeng)
+- SpectrumPage: FFT + waterfall CustomPainters, peak hold, VFO, bookmarks, recording
+- MapPage: dark grid, node markers, layer toggles, zoom controls
+- SettingsPage: connection status, tool checklist, app info, dark mode toggle
+- SpectrumProvider, Bookmark model, updated providers
+
+#### Flutter Phase 3 — Platform Bridges ✅
+- PlatformService abstract interface
+- WebSocketPlatformService (desktop: talks to Node.js bridge at ws://localhost:18790)
+- MethodChannelPlatformService (mobile: talks to native Kotlin/Swift)
+- Bridge server (Node.js) connecting Flutter to existing OCP packages
+- Android PlatformPlugin.kt with MethodChannel + EventChannel handlers
+- Linux C++ runner that launches bridge_server.js on app start
+- All 5 providers wired to real data via PlatformService
+
+#### Flutter Phase 4 — State Persistence ✅
+- StorageService with shared_preferences backend
+- AppSettings model with all configuration fields
+- SettingsProvider with auto-persist on change
+- Bookmark persistence in SpectrumProvider
+- Channel memory persistence in MessagingProvider
+- Connection history model and persistence
+- SettingsPage wired to live SettingsProvider
+- Splash/loading state on app init
 
 ## Architecture decisions
 
-1. **Desktop UI:** Electron + React + Tailwind + Radix UI for Windows. Flutter remains iOS/cross-platform target later.
-2. **UI aesthetic:** Analog, tactile, submarine CIC/sonar room. Dark slate background, green/amber phosphor accents, optional sound, CRT scanline overlay.
-3. **Centerpiece:** Sonar PPI signal mapper — rotating sweep, range rings, bearings, blips for Meshtastic nodes / RuView presence / RTL-SDR peaks / Baofeng hits.
-4. **RuView presence/vitals:** `packages/ocp_tools_ruview` connects to RuView sensing server WebSocket (`ws://host:3001/ws/sensing`) and feeds the Sonar mapper.
-5. **Offline maps:** MapLibre Native + MBTiles.
-6. **RTL-SDR:** `rtl_tcp` TCP streaming; FFT in main process via `kissfft-js`; spectrum + waterfall in renderer.
-7. **iOS support:** Requires a BLE or Wi-Fi gateway.
-8. **Baofeng programming:** Serial abstraction mirroring CHIRP `0xA5` command format.
-9. **Meshtastic serial mode:** Lock to PROTO.
-10. **MBTiles storage:** Host app-documents storage via `path_provider` / `app.getPath('userData')`.
-11. **Firmware flashing:** Fetch from `meshtastic/firmware` releases; flash with external `esptool.py`/`nrfutil`.
+1. **Desktop UI:** Electron + React + Tailwind + Radix UI. Flutter for cross-platform/iOS.
+2. **UI aesthetic:** Submarine CIC/sonar room — dark slate, green/amber phosphor, CRT scanlines.
+3. **Centerpiece:** Sonar PPI signal mapper.
+4. **Flutter bridges:** Desktop uses WebSocket to Node.js bridge; mobile uses MethodChannel to native.
+5. **Offline maps:** MapLibre GL JS (desktop) + PMTiles server; flutter_map planned for mobile.
+6. **RTL-SDR:** rtl_tcp TCP streaming + kissfft-js FFT.
+7. **Baofeng:** CHIRP-compatible 0xA5 serial protocol.
+8. **State persistence:** shared_preferences for Flutter; localStorage for Electron.
 
 ## Test status
 
@@ -126,40 +103,18 @@
 # fail 0
 ```
 
-Includes all original tests plus new transport auto-discovery, firmware updater, ONP network, RuView client, and RTL-SDR client/FFT tests.
-
 ## Known issues / limitations
-- `test-rak-connection.js` still tries a hardcoded IP and takes ~11s to fail gracefully.
-- `serialTransportConnection.js` and `bleTransportConnection.js` are stubs.
-- Firmware updater requires external `esptool.py` or `nrfutil`.
-- RTL-SDR spectrum: `rtl_tcp` source + `kissfft-js` FFT + spectrum/waterfall canvas.
-- `packages/ocp_tools_rtlsdr` unit tests.
-- ONP codec is JSON-based in the JS scaffold.
-- Desktop app builds but cannot be visually verified on the arm64 Pi headless environment; requires Windows display to run.
-- RuView integration requires the RuView Docker simulator or an ESP32-S3/C6 CSI node; the OCP-V1 app only provides the WebSocket client.
-- RTL-SDR requires `rtl_tcp` from the rtl-sdr package; not bundled.
-- Windows icon (`build/icon.ico`) is not yet generated; installer will use the default Electron icon until an `.ico` is added.
+- Desktop app cannot be visually verified on headless Pi; needs display.
+- RuView requires Docker simulator or real ESP32-S3/C6 hardware.
+- RTL-SDR requires external `rtl_tcp` binary.
+- Windows icon not yet generated (uses Electron default).
+- Flutter app not yet compiled/verified (no Flutter SDK on Pi).
 
-## Pending phases / features
-
-### Phase 6 — UI (continued)
-- MapLibre offline map view.
-- Baofeng channel editor.
-
-### RTL-SDR spectrum
-- ✅ `rtl_tcp` source + FFT/waterfall canvas. Refine: add bookmarks, peak hold, VFOs, recording.
-
-### Baofeng programming
-- Channel editor + serial read/write.
-
-### Flutter migration
-- Long-term cross-platform/iOS target.
+## Pending / Next priorities
+1. Flutter build verification — get `flutter build linux` and `flutter build apk` compiling
+2. Windows .ico + installer test on actual Windows
+3. Flutter mobile platform configs (iOS/Android permissions, navigation)
+4. Integration testing with real hardware
 
 ## Blockers
 - None.
-
-## Next priorities
-1. MapLibre offline map view.
-2. Baofeng channel editor.
-3. Add proper Windows `.ico` and test the installer on a Windows machine.
-4. Wire Messaging workspace to real Meshtastic/ODP send/receive.
