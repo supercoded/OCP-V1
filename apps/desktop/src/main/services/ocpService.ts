@@ -4,6 +4,7 @@ import { discoverTransport } from "@ocp/offline-core";
 import { RuViewClient } from "@ocp/tools-ruview";
 import { RtlTcpClient, SpectrumProcessor } from "@ocp/tools-rtlsdr";
 import { PmtilesServer } from "@ocp/maps";
+import { BaofengTransport } from "@ocp/bridge-baofeng";
 
 export interface SonarNode {
   id: number;
@@ -34,6 +35,9 @@ export interface OcpState {
   rtlSampleRate?: number;
   rtlHost?: string;
   rtlPort?: number;
+  mapPort?: number;
+  baofengConnected: boolean;
+  baofengPortName?: string;
 }
 
 export class OcpService {
@@ -50,6 +54,11 @@ export class OcpService {
   // Map server for offline PMTiles handling
   mapServer?: PmtilesServer;
   mapPort?: number;
+
+  // Baofeng serial transport
+  baofeng?: BaofengTransport;
+  baofengConnected: boolean = false;
+  baofengPortName?: string;
 
   start() {
     this.#registerIpc();
@@ -320,6 +329,68 @@ export class OcpService {
       }
       return { ok: true };
     });
+
+    // ---------------------------------------------------------------------
+    // Baofeng IPC – serial read/write for UV-5RM channel programming
+    // ---------------------------------------------------------------------
+    ipcMain.handle("baofeng:connect", async (_evt: IpcMainInvokeEvent, portName: string) => {
+      try {
+        if (this.baofeng) {
+          await this.baofeng.disconnect();
+        }
+        const transport = new BaofengTransport({ portName, baudRate: 9600 });
+        transport.onProgress = (info: { current: number; total: number; phase: string }) => {
+          BrowserWindow.getAllWindows().forEach((win) => {
+            win.webContents.send("baofeng:progress", info);
+          });
+        };
+        await transport.connect();
+        this.baofeng = transport;
+        this.baofengConnected = true;
+        this.baofengPortName = portName;
+        this.#emit();
+        return { ok: true };
+      } catch (err: any) {
+        return { ok: false, error: err.message };
+      }
+    });
+
+    ipcMain.handle("baofeng:disconnect", async () => {
+      try {
+        await this.baofeng?.disconnect();
+      } catch {}
+      this.baofeng = undefined;
+      this.baofengConnected = false;
+      this.baofengPortName = undefined;
+      this.#emit();
+      return { ok: true };
+    });
+
+    ipcMain.handle("baofeng:readChannels", async () => {
+      if (!this.baofeng || !this.baofengConnected) {
+        return { ok: false, error: "Not connected to Baofeng radio" };
+      }
+      try {
+        const channels = await this.baofeng.readAllChannels();
+        // Serialize for IPC (can't send class instances)
+        const serialized = channels.map((ch: any) => ({ ...ch }));
+        return { ok: true, channels: serialized };
+      } catch (err: any) {
+        return { ok: false, error: err.message };
+      }
+    });
+
+    ipcMain.handle("baofeng:writeChannels", async (_evt: IpcMainInvokeEvent, channels: any[]) => {
+      if (!this.baofeng || !this.baofengConnected) {
+        return { ok: false, error: "Not connected to Baofeng radio" };
+      }
+      try {
+        await this.baofeng.writeAllChannels(channels);
+        return { ok: true };
+      } catch (err: any) {
+        return { ok: false, error: err.message };
+      }
+    });
   }
 
   #stopRtl() {
@@ -355,6 +426,8 @@ export class OcpService {
       rtlHost: (this.rtlClient as any)?.host,
       rtlPort: (this.rtlClient as any)?.port,
       mapPort: this.mapPort,
+      baofengConnected: this.baofengConnected,
+      baofengPortName: this.baofengPortName,
     };
   }
 

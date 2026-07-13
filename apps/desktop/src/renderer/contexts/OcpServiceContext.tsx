@@ -19,6 +19,8 @@ export interface OcpState {
   rtlHost?: string;
   rtlPort?: number;
   mapPort?: number;
+  baofengConnected: boolean;
+  baofengPortName?: string;
 }
 
 export interface RuViewSensing {
@@ -67,6 +69,12 @@ interface OcpServiceAPI {
   sendMessage: (params: { text: string; channel?: number; destinationNodeId?: number }) => Promise<{ ok: boolean; error?: string }>;
   getMessageHistory: () => Promise<{ ok: boolean; history?: any[] }>;
   sendError?: string;
+
+  // Baofeng IPC
+  baofengConnect: (portName: string) => Promise<{ ok: boolean; error?: string }>;
+  baofengDisconnect: () => Promise<{ ok: boolean }>;
+  baofengReadChannels: () => Promise<{ ok: boolean; channels?: any[]; error?: string }>;
+  baofengWriteChannels: (channels: any[]) => Promise<{ ok: boolean; error?: string }>;
 }
 
 const OcpServiceContext = createContext<OcpServiceAPI | null>(null);
@@ -248,6 +256,31 @@ export function OcpServiceProvider({ children }: { children: ReactNode }) {
     return result;
   }, []);
 
+  // --- Baofeng IPC ---
+  const baofengConnect = useCallback(async (portName: string) => {
+    const api = (window as any).ocp;
+    if (!api) return { ok: false, error: "OCP API not available" };
+    return await api.baofengConnect(portName);
+  }, []);
+
+  const baofengDisconnect = useCallback(async () => {
+    const api = (window as any).ocp;
+    if (!api) return { ok: false };
+    return await api.baofengDisconnect();
+  }, []);
+
+  const baofengReadChannels = useCallback(async () => {
+    const api = (window as any).ocp;
+    if (!api) return { ok: false, error: "OCP API not available" };
+    return await api.baofengReadChannels();
+  }, []);
+
+  const baofengWriteChannels = useCallback(async (channels: any[]) => {
+    const api = (window as any).ocp;
+    if (!api) return { ok: false, error: "OCP API not available" };
+    return await api.baofengWriteChannels(channels);
+  }, []);
+
   return (
     <OcpServiceContext.Provider
       value={{
@@ -276,6 +309,11 @@ export function OcpServiceProvider({ children }: { children: ReactNode }) {
       sendMessage,
       getMessageHistory,
       sendError,
+      // Baofeng
+      baofengConnect,
+      baofengDisconnect,
+      baofengReadChannels,
+      baofengWriteChannels,
     }}
     >
       {children}

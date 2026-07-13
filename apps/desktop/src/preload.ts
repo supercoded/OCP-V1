@@ -56,6 +56,17 @@ const ocpAPI = {
     ipcRenderer.on("ocp:rtl:error", listener);
     return () => ipcRenderer.off("ocp:rtl:error", listener);
   },
+
+  // Baofeng IPC APIs
+  baofengConnect: (portName: string) => ipcRenderer.invoke("baofeng:connect", portName),
+  baofengDisconnect: () => ipcRenderer.invoke("baofeng:disconnect"),
+  baofengReadChannels: () => ipcRenderer.invoke("baofeng:readChannels"),
+  baofengWriteChannels: (channels: any[]) => ipcRenderer.invoke("baofeng:writeChannels", channels),
+  onBaofengProgress: (cb: (info: { current: number; total: number; phase: string }) => void) => {
+    const listener = (_evt: Electron.IpcRendererEvent, info: any) => cb(info);
+    ipcRenderer.on("baofeng:progress", listener);
+    return () => ipcRenderer.off("baofeng:progress", listener);
+  },
   // Messaging APIs
   sendMessage: (params: { text: string; channel?: number; destinationNodeId?: number }) =>
     ipcRenderer.invoke("ocp:message:send", params),

@@ -3,6 +3,7 @@ import { AnalogButton } from "../components/AnalogButton";
 import { AnalogToggle } from "../components/AnalogToggle";
 import { StatusLamp } from "../components/StatusLamp";
 import { TextField } from "../components/TextField";
+import { BaofengChannelEditor } from "../components/BaofengChannelEditor";
 import { useOcpService } from "../contexts/OcpServiceContext";
 
 export function DevicesPage() {
@@ -182,13 +183,14 @@ export function DevicesPage() {
       )}
 
       {tab === "baofeng" && (
-        <div className="flex flex-col gap-4 max-w-2xl p-4 rounded-lg border border-ocp-border bg-ocp-panel">
-          <span className="text-xs uppercase tracking-wider text-ocp-text-dim">Baofeng UV-5RM Programming</span>
-          <p className="text-xs text-ocp-text-dim leading-relaxed">
-            CHIRP-style memory channel editor and clone-mode read/write. Not yet implemented.
-          </p>
-          <AnalogButton disabled>Read from radio</AnalogButton>
-        </div>
+        <BaofengChannelEditor
+          baofengConnect={service.baofengConnect}
+          baofengDisconnect={service.baofengDisconnect}
+          baofengReadChannels={service.baofengReadChannels}
+          baofengWriteChannels={service.baofengWriteChannels}
+          baofengConnected={service.state.baofengConnected}
+          baofengPortName={service.state.baofengPortName}
+        />
       )}
     </div>
   );
