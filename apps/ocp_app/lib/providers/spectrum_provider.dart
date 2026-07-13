@@ -2,9 +2,11 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/bookmark.dart';
 import '../services/platform_service.dart';
+import '../services/storage_service.dart';
 
 class SpectrumProvider extends ChangeNotifier {
   final PlatformService? _platformService;
+  final StorageService? _storageService;
   StreamSubscription<Map<String, dynamic>>? _rtlSubscription;
 
   // Spectrum data
@@ -77,8 +79,50 @@ class SpectrumProvider extends ChangeNotifier {
   double get centerFreqMHz => _centerFreqHz / 1e6;
   double get vfoFreqMHz => _vfoFreqHz / 1e6;
 
-  SpectrumProvider({PlatformService? platformService}) : _platformService = platformService {
+  SpectrumProvider({PlatformService? platformService, StorageService? storageService})
+      : _platformService = platformService,
+        _storageService = storageService {
     _listenToPlatform();
+    _loadBookmarks();
+  }
+
+  // ── Bookmark persistence ────────────────────────────────────────────
+
+  Future<void> _loadBookmarks() async {
+    if (_storageService == null) return;
+    try {
+      final list = await _storageService!.getJsonList(StorageKeys.bookmarks);
+      if (list != null && list.isNotEmpty) {
+        _bookmarks
+          ..clear()
+          ..addAll(list.map((m) => Bookmark(
+                label: m['label'] as String? ?? '',
+                frequency: (m['frequency'] as num?)?.toDouble() ?? 0.0,
+                bandwidth: (m['bandwidth'] as num?)?.toDouble() ?? 12.5,
+                modulation: m['modulation'] as String? ?? 'FM',
+              )));
+        debugPrint('[SpectrumProvider] Loaded ${_bookmarks.length} bookmarks from storage');
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('[SpectrumProvider] Failed to load bookmarks: $e');
+    }
+  }
+
+  Future<void> saveBookmarks() async {
+    if (_storageService == null) return;
+    try {
+      final list = _bookmarks.map((b) => {
+            'label': b.label,
+            'frequency': b.frequency,
+            'bandwidth': b.bandwidth,
+            'modulation': b.modulation,
+          }).toList();
+      await _storageService!.setJsonList(StorageKeys.bookmarks, list);
+      debugPrint('[SpectrumProvider] Saved ${_bookmarks.length} bookmarks');
+    } catch (e) {
+      debugPrint('[SpectrumProvider] Failed to save bookmarks: $e');
+    }
   }
 
   void _listenToPlatform() {
@@ -210,16 +254,18 @@ class SpectrumProvider extends ChangeNotifier {
     }
   }
 
-  // Bookmarks
+  // Bookmarks — auto-save on every mutation
   void addBookmark(Bookmark bookmark) {
     _bookmarks.add(bookmark);
     notifyListeners();
+    saveBookmarks();
   }
 
   void removeBookmarkAt(int index) {
     if (index >= 0 && index < _bookmarks.length) {
       _bookmarks.removeAt(index);
       notifyListeners();
+      saveBookmarks();
     }
   }
 
@@ -227,6 +273,7 @@ class SpectrumProvider extends ChangeNotifier {
     if (index >= 0 && index < _bookmarks.length) {
       _bookmarks[index] = bookmark;
       notifyListeners();
+      saveBookmarks();
     }
   }
 

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import '../models/connection_history.dart';
 import '../services/platform_service.dart';
+import '../services/storage_service.dart';
 
 class NodeInfo {
   final String id;
@@ -38,8 +40,13 @@ class RtlOptions {
 
 class ConnectionProvider extends ChangeNotifier {
   final PlatformService? _platformService;
+  final StorageService? _storageService;
   StreamSubscription<Map<String, dynamic>>? _stateSubscription;
   StreamSubscription<Map<String, dynamic>>? _nodeSubscription;
+
+  // Recent connections (persisted)
+  final List<RecentConnection> _recentConnections = [];
+  List<RecentConnection> get recentConnections => List.unmodifiable(_recentConnections);
 
   // Meshtastic connection
   bool _connected = false;
@@ -93,8 +100,11 @@ class ConnectionProvider extends ChangeNotifier {
   bool get baofengConnected => _baofengConnected;
   String? get baofengPortName => _baofengPortName;
 
-  ConnectionProvider({PlatformService? platformService}) : _platformService = platformService {
+  ConnectionProvider({PlatformService? platformService, StorageService? storageService})
+      : _platformService = platformService,
+        _storageService = storageService {
     _listenToPlatform();
+    _loadRecentConnections();
   }
 
   void _listenToPlatform() {
@@ -159,6 +169,59 @@ class ConnectionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Recent connections persistence ────────────────────────────────────
+
+  Future<void> _loadRecentConnections() async {
+    if (_storageService == null) return;
+    try {
+      final list = await _storageService!.getJsonList(StorageKeys.recentConnections);
+      if (list != null) {
+        _recentConnections.clear();
+        _recentConnections.addAll(
+          list.map((m) => RecentConnection.fromMap(m)).take(10),
+        );
+        debugPrint('[ConnectionProvider] Loaded ${_recentConnections.length} recent connections');
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('[ConnectionProvider] Failed to load recent connections: $e');
+    }
+  }
+
+  Future<void> _saveRecentConnections() async {
+    if (_storageService == null) return;
+    try {
+      final list = _recentConnections.map((c) => c.toMap()).toList();
+      await _storageService!.setJsonList(StorageKeys.recentConnections, list);
+    } catch (e) {
+      debugPrint('[ConnectionProvider] Failed to save recent connections: $e');
+    }
+  }
+
+  void _addRecentConnection(String host, int port, String transportKind) {
+    final conn = RecentConnection(
+      host: host,
+      port: port,
+      transportKind: transportKind,
+      lastUsed: DateTime.now(),
+    );
+    // Remove duplicate if exists
+    _recentConnections.removeWhere((c) => c.key == conn.key);
+    // Insert at front
+    _recentConnections.insert(0, conn);
+    // Keep only last 10
+    if (_recentConnections.length > 10) {
+      _recentConnections.removeRange(10, _recentConnections.length);
+    }
+    _saveRecentConnections();
+  }
+
+  void clearRecentConnections() {
+    _recentConnections.clear();
+    _saveRecentConnections();
+    notifyListeners();
+  }
+
   /// Connect to Meshtastic device via platform service or fallback stub.
   Future<void> connect(ConnectionOptions options) async {
     _connecting = true;
@@ -197,6 +260,12 @@ class ConnectionProvider extends ChangeNotifier {
       } else {
         _transportKind = 'Auto';
       }
+      // Save to recent connections
+      _addRecentConnection(
+        options.tcpHost ?? options.serialPort ?? options.bleDeviceId ?? 'auto',
+        options.tcpPort ?? 4403,
+        _transportKind!,
+      );
       notifyListeners();
     }
   }

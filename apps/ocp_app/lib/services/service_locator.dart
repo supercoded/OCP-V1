@@ -1,9 +1,11 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'platform_service.dart';
+import 'storage_service.dart';
 
 /// Singleton service locator that creates the appropriate PlatformService
-/// based on the current platform.
+/// based on the current platform and initializes StorageService for
+/// local persistence.
 ///
 /// On desktop (Linux/Windows/macOS): WebSocketPlatformService
 /// On mobile (Android/iOS): MethodChannelPlatformService
@@ -11,6 +13,7 @@ class ServiceLocator {
   static ServiceLocator? _instance;
 
   late final PlatformService platformService;
+  late final StorageService storageService;
 
   ServiceLocator._() {
     if (_isDesktop) {
@@ -20,6 +23,8 @@ class ServiceLocator {
       platformService = MethodChannelPlatformService();
       debugPrint('[ServiceLocator] Using MethodChannelPlatformService (mobile)');
     }
+    storageService = LocalStorageService();
+    debugPrint('[ServiceLocator] Using LocalStorageService');
   }
 
   /// Get the singleton instance.
@@ -34,12 +39,19 @@ class ServiceLocator {
     return Platform.isLinux || Platform.isMacOS || Platform.isWindows;
   }
 
-  /// Convenience getter.
+  /// Convenience getter for platform service.
   static PlatformService get platform => instance.platformService;
+
+  /// Convenience getter for storage service.
+  static StorageService get storage => instance.storageService;
 
   /// Initialize — call in main() before runApp().
   static Future<void> initialize() async {
     debugPrint('[ServiceLocator] Initializing on ${Platform.operatingSystem}');
+
+    // Initialize storage first
+    await instance.storageService.init();
+
     // For desktop, pre-connect to the bridge WebSocket.
     if (_isDesktop) {
       final ws = instance.platformService as WebSocketPlatformService;

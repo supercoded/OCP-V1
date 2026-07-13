@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../services/platform_service.dart';
+import '../services/storage_service.dart';
 
 class Message {
   final int id;
@@ -31,6 +32,7 @@ class ChannelInfo {
 
 class MessagingProvider extends ChangeNotifier {
   final PlatformService? _platformService;
+  final StorageService? _storageService;
   StreamSubscription<Map<String, dynamic>>? _messageSubscription;
 
   static const List<ChannelInfo> channels = [
@@ -57,8 +59,36 @@ class MessagingProvider extends ChangeNotifier {
   bool get connected => _connected;
   String? get transportKind => _transportKind;
 
-  MessagingProvider({PlatformService? platformService}) : _platformService = platformService {
+  MessagingProvider({PlatformService? platformService, StorageService? storageService})
+      : _platformService = platformService,
+        _storageService = storageService {
     _listenToPlatform();
+    _loadChannel();
+  }
+
+  // ── Channel persistence ──────────────────────────────────────────────
+
+  Future<void> _loadChannel() async {
+    if (_storageService == null) return;
+    try {
+      final ch = await _storageService!.getInt(StorageKeys.messagingChannel);
+      if (ch != null && ch >= 0 && ch < channels.length) {
+        _selectedChannel = ch;
+        debugPrint('[MessagingProvider] Loaded channel: $ch');
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('[MessagingProvider] Failed to load channel: $e');
+    }
+  }
+
+  Future<void> _saveChannel() async {
+    if (_storageService == null) return;
+    try {
+      await _storageService!.setInt(StorageKeys.messagingChannel, _selectedChannel);
+    } catch (e) {
+      debugPrint('[MessagingProvider] Failed to save channel: $e');
+    }
   }
 
   void _listenToPlatform() {
@@ -108,6 +138,7 @@ class MessagingProvider extends ChangeNotifier {
 
   void selectChannel(int channel) {
     _selectedChannel = channel;
+    _saveChannel();
     notifyListeners();
   }
 

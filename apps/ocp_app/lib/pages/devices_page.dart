@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ocp_flutter_core/theme/ocp_colors.dart';
+import '../models/connection_history.dart';
 import '../providers/connection_provider.dart';
 import '../widgets/status_lamp.dart';
 import '../widgets/analog_button.dart';
@@ -236,6 +237,11 @@ class _DevicesPageState extends State<DevicesPage> {
               _buildStatusRow('Mesh nodes', '${conn.nodeCount}'),
             ],
           ),
+          // Recent connections
+          if (conn.recentConnections.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildRecentConnectionsPanel(context, conn),
+          ],
         ],
       ),
     );
@@ -541,6 +547,65 @@ class _DevicesPageState extends State<DevicesPage> {
         style: const TextStyle(fontSize: 10, fontFamily: 'JetBrainsMono', color: OcpColors.ocpAccent),
       ),
     );
+  }
+
+  Widget _buildRecentConnectionsPanel(BuildContext context, ConnectionProvider conn) {
+    return _buildPanel(
+      title: 'Recent Connections',
+      children: [
+        ...conn.recentConnections.map((rc) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 3),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  rc.toString(),
+                  style: const TextStyle(fontSize: 11, fontFamily: 'JetBrainsMono', color: OcpColors.ocpText),
+                ),
+              ),
+              Text(
+                _formatLastUsed(rc.lastUsed),
+                style: const TextStyle(fontSize: 10, fontFamily: 'JetBrainsMono', color: OcpColors.ocpTextMuted),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => _handleRecentConnect(rc),
+                child: const Text(
+                  'CONNECT',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: OcpColors.ocpAccent, letterSpacing: 1),
+                ),
+              ),
+            ],
+          ),
+        )),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: () => conn.clearRecentConnections(),
+          child: const Text(
+            'CLEAR HISTORY',
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: OcpColors.ocpRed, letterSpacing: 1),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatLastUsed(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
+
+  void _handleRecentConnect(RecentConnection rc) {
+    final conn = context.read<ConnectionProvider>();
+    setState(() => _lastError = null);
+    conn.connect(ConnectionOptions(
+      tcpHost: rc.transportKind == 'TCP' ? rc.host : null,
+      tcpPort: rc.port,
+    ));
   }
 
   void _handleConnect() {
