@@ -9,6 +9,7 @@ dependencies:
   flutter:
     sdk: flutter
   provider: ^6.1.0
+  flutter_map: ^7.0.0
   ocp_flutter_core:
     path: ../../packages/ocp_flutter_core
 
