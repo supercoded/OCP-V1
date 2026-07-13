@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:ocp_flutter_core/ocp_flutter_core.dart';
 import 'providers/connection_provider.dart';
 import 'providers/sonar_provider.dart';
+import 'providers/messaging_provider.dart';
+import 'providers/network_provider.dart';
 import 'widgets/ocp_scaffold.dart';
 
 class OcpApp extends StatelessWidget {
@@ -14,6 +16,8 @@ class OcpApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ConnectionProvider()),
         ChangeNotifierProvider(create: (_) => SonarProvider()),
+        ChangeNotifierProvider(create: (_) => MessagingProvider()),
+        ChangeNotifierProvider(create: (_) => NetworkProvider()),
       ],
       child: MaterialApp(
         title: 'OCP‑V1',

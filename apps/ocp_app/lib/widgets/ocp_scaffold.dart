@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:ocp_flutter_core/theme/ocp_theme.dart';
-import 'package:ocp_flutter_core/theme/ocp_text_styles.dart';
-import 'package:provider/provider.dart';
+import 'package:ocp_flutter_core/theme/ocp_colors.dart';
 import '../providers/connection_provider.dart';
 import '../widgets/sidebar_navigation.dart';
-import '../widgets/ocp_scaffold.dart';
 import '../pages/sonar_page.dart';
 import '../pages/messaging_page.dart';
 import '../pages/network_page.dart';
@@ -33,20 +30,16 @@ class _OcpScaffoldState extends State<OcpScaffold> {
     SettingsPage(),
   ];
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    final connection = Provider.of<ConnectionProvider>(context);
     return Scaffold(
       backgroundColor: OcpColors.ocpBg,
       body: Row(
         children: [
-          SidebarNavigation(selectedIndex: _selectedIndex, onTap: _onItemTapper),
+          SidebarNavigation(
+            selectedIndex: _selectedIndex,
+            onTap: (index) => setState(() => _selectedIndex = index),
+          ),
           Expanded(
             child: IndexedStack(
               index: _selectedIndex,
@@ -57,6 +50,4 @@ class _OcpScaffoldState extends State<OcpScaffold> {
       ),
     );
   }
-
-  void _onItemTapper(int index) => _onItemTapped(index);
 }
