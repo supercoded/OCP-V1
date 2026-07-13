@@ -25,6 +25,28 @@ nsis:
   shortcutName: OCP-V1
   include: build/installer.nsh
   license: build/LICENSE.txt
+linux:
+  target:
+    - AppImage
+    - deb
+  icon: build/icon.png
+  category: Network
+  executableName: ocp-v1
+  maintainer: Supercoded <hello@supercoded.ai>
+  desktop:
+    entry:
+      Name: OCP-V1
+      Comment: Offline communications base station for Meshtastic, Baofeng, RTL-SDR, and RuView
+      Categories: Network;HamRadio;Utility;
+      StartupNotify: 'true'
+deb:
+  packageName: ocp-v1
+  artifactName: ocp-v1_${version}_${arch}.${ext}
+  depends:
+    - libnotify4
+    - libxtst6
+    - libnss3
+    - libasound2
 publish:
   provider: github
   owner: supercoded

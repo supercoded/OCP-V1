@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Offline communications base station for Meshtastic, Baofeng, RTL-SDR, and RuView.",
+  "homepage": "https://github.com/supercoded/OCP-V1",
   "author": "Supercoded <hello@supercoded.ai>",
   "main": "out/main/main.js",
   "type": "module",
@@ -12,6 +13,7 @@
     "preview": "electron-vite preview",
     "dist": "electron-builder",
     "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux",
     "dist:dir": "electron-builder --dir",
     "test": "vitest run"
   },

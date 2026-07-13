@@ -18,7 +18,9 @@
     "firmware:flash": "node scripts/update-meshtastic-firmware.js flash",
     "desktop:dev": "npm run dev --workspace=@ocp/desktop",
     "desktop:build": "npm run build --workspace=@ocp/desktop",
-    "desktop:dist:win": "npm run dist:win --workspace=@ocp/desktop"
+    "desktop:dist:win": "npm run dist:win --workspace=@ocp/desktop",
+    "desktop:build:linux": "npm run build --workspace=@ocp/desktop && npm run dist:linux --workspace=@ocp/desktop",
+    "desktop:dist:linux": "npm run dist:linux --workspace=@ocp/desktop"
   },
   "dependencies": {
     "protobufjs": "^8.7.0"
