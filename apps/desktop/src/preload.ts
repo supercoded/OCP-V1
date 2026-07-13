@@ -25,6 +25,11 @@ const ocpAPI = {
   startRtlMock: (cfg?: { centerFreq?: number; sampleRate?: number; carriers?: { freqOffset: number; amplitude: number }[] }) =>
     ipcRenderer.invoke("ocp:rtl:mock", cfg ?? {}),
 
+  // RTL-SDR Recording
+  startRtlRecording: (filename?: string) => ipcRenderer.invoke("ocp:rtl:startRecording", filename),
+  stopRtlRecording: () => ipcRenderer.invoke("ocp:rtl:stopRecording"),
+  getRtlRecordingStatus: () => ipcRenderer.invoke("ocp:rtl:recordingStatus"),
+
   // Map server control
   startMap: (filePath: string) => ipcRenderer.invoke("ocp:map:start", filePath),
   stopMap: () => ipcRenderer.invoke("ocp:map:stop"),
@@ -55,6 +60,16 @@ const ocpAPI = {
     const listener = (_evt: Electron.IpcRendererEvent, error: string) => cb(error);
     ipcRenderer.on("ocp:rtl:error", listener);
     return () => ipcRenderer.off("ocp:rtl:error", listener);
+  },
+  onRtlRecordingStarted: (cb: (info: any) => void) => {
+    const listener = (_evt: Electron.IpcRendererEvent, info: any) => cb(info);
+    ipcRenderer.on("ocp:rtl:recording:started", listener);
+    return () => ipcRenderer.off("ocp:rtl:recording:started", listener);
+  },
+  onRtlRecordingStopped: (cb: (info: any) => void) => {
+    const listener = (_evt: Electron.IpcRendererEvent, info: any) => cb(info);
+    ipcRenderer.on("ocp:rtl:recording:stopped", listener);
+    return () => ipcRenderer.off("ocp:rtl:recording:stopped", listener);
   },
 
   // Baofeng IPC APIs

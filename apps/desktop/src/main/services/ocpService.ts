@@ -174,6 +174,23 @@ export class OcpService {
         });
       });
 
+      // Forward recording events to renderer
+      client.on("recording:started", (info: any) => {
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send("ocp:rtl:recording:started", info);
+        });
+      });
+      client.on("recording:stopped", (info: any) => {
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send("ocp:rtl:recording:stopped", info);
+        });
+      });
+      client.on("recording:error", (err: any) => {
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send("ocp:rtl:error", `Recording error: ${err?.message || err}`);
+        });
+      });
+
       try {
         await client.connect();
       } catch (err: any) {
@@ -231,6 +248,37 @@ export class OcpService {
       this.rtlProcessor = processor;
       this.#emit();
       return { ok: true };
+    });
+
+    // ---------------------------------------------------------------------
+    // RTL-SDR Recording IPC
+    // ---------------------------------------------------------------------
+    ipcMain.handle("ocp:rtl:startRecording", async (_evt: IpcMainInvokeEvent, filename?: string) => {
+      if (!this.rtlClient) return { ok: false, error: "RTL-SDR not connected" };
+      if (typeof (this.rtlClient as any).startRecording !== "function") {
+        return { ok: false, error: "Recording not supported on this source" };
+      }
+      return (this.rtlClient as any).startRecording(filename);
+    });
+
+    ipcMain.handle("ocp:rtl:stopRecording", async () => {
+      if (!this.rtlClient) return { ok: false, error: "RTL-SDR not connected" };
+      if (typeof (this.rtlClient as any).stopRecording !== "function") {
+        return { ok: false, error: "Recording not supported on this source" };
+      }
+      return (this.rtlClient as any).stopRecording();
+    });
+
+    ipcMain.handle("ocp:rtl:recordingStatus", async () => {
+      if (!this.rtlClient) return { recording: false };
+      const client = this.rtlClient as any;
+      if (typeof client.isRecording === "undefined") return { recording: false };
+      return {
+        recording: client.isRecording,
+        path: client.recordingPath ?? null,
+        startTime: client.recordingStartTime ?? null,
+        bytesWritten: client.recordingBytesWritten ?? 0,
+      };
     });
 
     ipcMain.handle("ocp:state", () => this.#state());

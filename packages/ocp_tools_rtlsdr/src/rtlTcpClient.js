@@ -1,5 +1,8 @@
 import { EventEmitter } from "events";
 import { createConnection } from "net";
+import { createWriteStream, mkdirSync, existsSync } from "fs";
+import { join } from "path";
+import { homedir } from "os";
 
 export const RTL_TCP_COMMANDS = {
   SET_FREQ: 0x01,
@@ -152,4 +155,82 @@ export class RtlTcpClient extends EventEmitter {
   setBiasTee(enabled) {
     return this.#sendCommand(RTL_TCP_COMMANDS.SET_BIAS_TEE, enabled ? 1 : 0);
   }
+
+  // --- I/Q Recording ---
+  #recording = false;
+  #recordingStream = null;
+  #recordingPath = null;
+  #recordingStartTime = null;
+  #recordingBytesWritten = 0;
+
+  get isRecording() {
+    return this.#recording;
+  }
+
+  get recordingPath() {
+    return this.#recordingPath;
+  }
+
+  get recordingStartTime() {
+    return this.#recordingStartTime;
+  }
+
+  get recordingBytesWritten() {
+    return this.#recordingBytesWritten;
+  }
+
+  startRecording(filename) {
+    if (this.#recording) return { ok: false, error: "Already recording" };
+    const dir = join(homedir(), "ocp-recordings");
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    const ts = new Date().toISOString().replace(/[:.]/g, "-");
+    const path = filename || join(dir, `iq-capture-${ts}.raw`);
+    try {
+      const stream = createWriteStream(path, { flags: "w" });
+      this.#recording = true;
+      this.#recordingStream = stream;
+      this.#recordingPath = path;
+      this.#recordingStartTime = Date.now();
+      this.#recordingBytesWritten = 0;
+      stream.on("error", (err) => {
+        this.emit("recording:error", err);
+        this.#stopRecordingInternal();
+      });
+      stream.on("finish", () => {
+        this.emit("recording:stopped", { path: this.#recordingPath, bytesWritten: this.#recordingBytesWritten });
+      });
+      // Listen for IQ data to write to file
+      this.on("iq", this.#recordingIqHandler);
+      this.emit("recording:started", { path });
+      return { ok: true, path };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  }
+
+  stopRecording() {
+    if (!this.#recording) return { ok: false, error: "Not recording" };
+    const result = { ok: true, path: this.#recordingPath, bytesWritten: this.#recordingBytesWritten, duration: Date.now() - this.#recordingStartTime };
+    this.#stopRecordingInternal();
+    return result;
+  }
+
+  #stopRecordingInternal() {
+    this.#recording = false;
+    this.removeListener("iq", this.#recordingIqHandler);
+    if (this.#recordingStream) {
+      this.#recordingStream.end();
+      this.#recordingStream = null;
+    }
+    this.#recordingPath = null;
+    this.#recordingStartTime = null;
+    this.#recordingBytesWritten = 0;
+  }
+
+  #recordingIqHandler = (samples) => {
+    if (this.#recording && this.#recordingStream) {
+      this.#recordingStream.write(Buffer.from(samples.buffer, samples.byteOffset, samples.byteLength));
+      this.#recordingBytesWritten += samples.byteLength;
+    }
+  };
 }

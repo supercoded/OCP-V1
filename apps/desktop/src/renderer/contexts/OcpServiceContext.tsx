@@ -55,6 +55,10 @@ interface OcpServiceAPI {
   setRtlFreq: (hz: number) => Promise<{ ok: boolean; error?: string }>;
   setRtlGain: (gain: { mode?: "auto" | "manual"; value?: number }) => Promise<{ ok: boolean; error?: string }>;
   startRtlMock: (cfg?: { centerFreq?: number; sampleRate?: number; carriers?: { freqOffset: number; amplitude: number }[] }) => Promise<{ ok: boolean; error?: string }>;
+  // RTL-SDR Recording
+  startRtlRecording: (filename?: string) => Promise<{ ok: boolean; path?: string; error?: string }>;
+  stopRtlRecording: () => Promise<{ ok: boolean; path?: string; bytesWritten?: number; duration?: number; error?: string }>;
+  getRtlRecordingStatus: () => Promise<{ recording: boolean; path?: string | null; startTime?: number | null; bytesWritten?: number }>;
   rtlSpectrum: SpectrumFrame[];
   rtlError?: string;
   mapPort?: number;
@@ -177,6 +181,24 @@ export function OcpServiceProvider({ children }: { children: ReactNode }) {
     return result;
   }, []);
 
+  const startRtlRecording = useCallback(async (filename?: string) => {
+    const api = (window as any).ocp;
+    if (!api) return { ok: false, error: "OCP API not available" };
+    return await api.startRtlRecording(filename);
+  }, []);
+
+  const stopRtlRecording = useCallback(async () => {
+    const api = (window as any).ocp;
+    if (!api) return { ok: false, error: "OCP API not available" };
+    return await api.stopRtlRecording();
+  }, []);
+
+  const getRtlRecordingStatus = useCallback(async () => {
+    const api = (window as any).ocp;
+    if (!api) return { recording: false };
+    return await api.getRtlRecordingStatus();
+  }, []);
+
   const startMap = useCallback(async (filePath: string) => {
     const api = (window as any).ocp;
     if (!api) return { ok: false, error: "OCP API not available" };
@@ -296,6 +318,9 @@ export function OcpServiceProvider({ children }: { children: ReactNode }) {
         setRtlFreq,
         setRtlGain,
       startRtlMock,
+      startRtlRecording,
+      stopRtlRecording,
+      getRtlRecordingStatus,
       rtlSpectrum,
       rtlError,
       mapPort,
