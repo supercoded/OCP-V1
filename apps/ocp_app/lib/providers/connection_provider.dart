@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
+import '../services/platform_service.dart';
 
 class NodeInfo {
   final String id;
@@ -35,6 +37,10 @@ class RtlOptions {
 }
 
 class ConnectionProvider extends ChangeNotifier {
+  final PlatformService? _platformService;
+  StreamSubscription<Map<String, dynamic>>? _stateSubscription;
+  StreamSubscription<Map<String, dynamic>>? _nodeSubscription;
+
   // Meshtastic connection
   bool _connected = false;
   bool _connecting = false;
@@ -87,6 +93,47 @@ class ConnectionProvider extends ChangeNotifier {
   bool get baofengConnected => _baofengConnected;
   String? get baofengPortName => _baofengPortName;
 
+  ConnectionProvider({PlatformService? platformService}) : _platformService = platformService {
+    _listenToPlatform();
+  }
+
+  void _listenToPlatform() {
+    if (_platformService == null) return;
+
+    _stateSubscription = _platformService!.onStateChange.listen((event) {
+      final connected = event['connected'] as bool?;
+      final transportKind = event['transportKind'] as String?;
+      final nodeCount = event['nodeCount'] as int?;
+
+      if (connected != null) _connected = connected;
+      if (transportKind != null) _transportKind = transportKind;
+      if (nodeCount != null) _nodeCount = nodeCount;
+
+      if (connected == true) {
+        _connecting = false;
+      }
+      notifyListeners();
+    });
+
+    _nodeSubscription = _platformService!.onNodeUpdate.listen((event) {
+      final id = event['id']?.toString() ?? '';
+      final name = event['shortName'] as String? ?? event['longName'] as String? ?? '';
+      final status = event['role'] as String? ?? 'client';
+      _upsertNode(NodeInfo(id: id, name: name, status: status));
+      notifyListeners();
+    });
+  }
+
+  void _upsertNode(NodeInfo node) {
+    final idx = _nodes.indexWhere((n) => n.id == node.id);
+    if (idx >= 0) {
+      _nodes[idx] = node;
+    } else {
+      _nodes.add(node);
+    }
+    _nodeCount = _nodes.length;
+  }
+
   // Meshtastic actions
   void setConnecting(bool value) {
     _connecting = value;
@@ -112,13 +159,33 @@ class ConnectionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Connect to Meshtastic device
-  void connect(ConnectionOptions options) {
+  /// Connect to Meshtastic device via platform service or fallback stub.
+  Future<void> connect(ConnectionOptions options) async {
     _connecting = true;
     notifyListeners();
-    // In real app, this would establish connection
-    // For now, simulate success after brief delay
-    Future.delayed(const Duration(milliseconds: 500), () {
+
+    if (_platformService != null) {
+      try {
+        final success = await _platformService!.connect({
+          if (options.tcpHost != null) 'tcpHost': options.tcpHost,
+          if (options.tcpPort != null) 'tcpPort': options.tcpPort,
+          if (options.serialPort != null) 'serialPort': options.serialPort,
+          if (options.bleDeviceId != null) 'bleDeviceId': options.bleDeviceId,
+        });
+        if (!success) {
+          _connected = false;
+          _connecting = false;
+          notifyListeners();
+        }
+        // State update will come from onStateChange stream
+      } catch (e) {
+        _connected = false;
+        _connecting = false;
+        notifyListeners();
+      }
+    } else {
+      // Fallback stub for testing
+      await Future.delayed(const Duration(milliseconds: 500));
       _connected = true;
       _connecting = false;
       if (options.tcpHost != null) {
@@ -131,10 +198,15 @@ class ConnectionProvider extends ChangeNotifier {
         _transportKind = 'Auto';
       }
       notifyListeners();
-    });
+    }
   }
 
-  void disconnect() {
+  Future<void> disconnect() async {
+    if (_platformService != null) {
+      try {
+        await _platformService!.disconnect();
+      } catch (_) {}
+    }
     _connected = false;
     _connecting = false;
     _transportKind = null;
@@ -142,16 +214,42 @@ class ConnectionProvider extends ChangeNotifier {
   }
 
   // RTL-SDR actions
-  void connectRtl(RtlOptions options) {
-    _rtlHost = options.host;
-    _rtlPort = options.port;
-    _rtlCenterFreq = options.centerFreqHz;
-    _rtlConnected = true;
-    _rtlError = null;
+  Future<void> connectRtl(RtlOptions options) async {
+    if (_platformService != null) {
+      try {
+        final success = await _platformService!.connectRtl({
+          'host': options.host,
+          'port': options.port,
+          'centerFreqHz': options.centerFreqHz,
+        });
+        if (success) {
+          _rtlHost = options.host;
+          _rtlPort = options.port;
+          _rtlCenterFreq = options.centerFreqHz;
+          _rtlConnected = true;
+          _rtlError = null;
+        } else {
+          _rtlError = 'Connection failed';
+        }
+      } catch (e) {
+        _rtlError = e.toString();
+      }
+    } else {
+      _rtlHost = options.host;
+      _rtlPort = options.port;
+      _rtlCenterFreq = options.centerFreqHz;
+      _rtlConnected = true;
+      _rtlError = null;
+    }
     notifyListeners();
   }
 
-  void disconnectRtl() {
+  Future<void> disconnectRtl() async {
+    if (_platformService != null) {
+      try {
+        await _platformService!.disconnectRtl();
+      } catch (_) {}
+    }
     _rtlConnected = false;
     _rtlError = null;
     notifyListeners();
@@ -173,15 +271,35 @@ class ConnectionProvider extends ChangeNotifier {
   }
 
   // RuView actions
-  void startRuView({String host = 'localhost', int port = 3001}) {
-    _ruViewHost = host;
-    _ruViewPort = port;
-    _ruViewConnected = true;
-    _ruViewError = null;
+  Future<void> startRuView({String host = 'localhost', int port = 3001}) async {
+    if (_platformService != null) {
+      try {
+        await _platformService!.startRuView({
+          'host': host,
+          'wsPort': port,
+        });
+        _ruViewHost = host;
+        _ruViewPort = port;
+        _ruViewConnected = true;
+        _ruViewError = null;
+      } catch (e) {
+        _ruViewError = e.toString();
+      }
+    } else {
+      _ruViewHost = host;
+      _ruViewPort = port;
+      _ruViewConnected = true;
+      _ruViewError = null;
+    }
     notifyListeners();
   }
 
-  void stopRuView() {
+  Future<void> stopRuView() async {
+    if (_platformService != null) {
+      try {
+        await _platformService!.stopRuView();
+      } catch (_) {}
+    }
     _ruViewConnected = false;
     notifyListeners();
   }
@@ -207,5 +325,12 @@ class ConnectionProvider extends ChangeNotifier {
     _baofengConnected = false;
     _baofengPortName = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _stateSubscription?.cancel();
+    _nodeSubscription?.cancel();
+    super.dispose();
   }
 }

@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
+import '../services/platform_service.dart';
 
 class Message {
   final int id;
@@ -28,6 +30,9 @@ class ChannelInfo {
 }
 
 class MessagingProvider extends ChangeNotifier {
+  final PlatformService? _platformService;
+  StreamSubscription<Map<String, dynamic>>? _messageSubscription;
+
   static const List<ChannelInfo> channels = [
     ChannelInfo(id: 0, name: 'LongFast'),
     ChannelInfo(id: 1, name: 'Tactical'),
@@ -51,6 +56,39 @@ class MessagingProvider extends ChangeNotifier {
   String? get sendError => _sendError;
   bool get connected => _connected;
   String? get transportKind => _transportKind;
+
+  MessagingProvider({PlatformService? platformService}) : _platformService = platformService {
+    _listenToPlatform();
+  }
+
+  void _listenToPlatform() {
+    if (_platformService == null) return;
+
+    _messageSubscription = _platformService!.onMessageReceived.listen((event) {
+      final msg = Message(
+        id: event['id'] as int? ?? _nextId++,
+        text: event['text'] as String? ?? '',
+        from: event['from']?.toString() ?? 'unknown',
+        to: event['to']?.toString(),
+        channel: event['channel'] as int? ?? 0,
+        timestamp: event['timestamp'] != null
+            ? DateTime.fromMillisecondsSinceEpoch(event['timestamp'] as int)
+            : DateTime.now(),
+        outgoing: event['outgoing'] as bool? ?? false,
+      );
+      _messages.add(msg);
+      notifyListeners();
+    });
+
+    // Also listen to state changes to update connected status
+    _platformService!.onStateChange.listen((event) {
+      final connected = event['connected'] as bool?;
+      final transport = event['transportKind'] as String?;
+      if (connected != null) _connected = connected;
+      if (transport != null) _transportKind = transport;
+      notifyListeners();
+    });
+  }
 
   /// Messages for a specific channel
   List<Message> messagesForChannel(int channel) {
@@ -80,11 +118,11 @@ class MessagingProvider extends ChangeNotifier {
   }
 
   /// Send a message. Returns true on success.
-  bool sendMessage({
+  Future<bool> sendMessage({
     required String text,
     required int channel,
     String? destinationNodeId,
-  }) {
+  }) async {
     if (!_connected) {
       _sendError = 'No device connected';
       notifyListeners();
@@ -93,6 +131,7 @@ class MessagingProvider extends ChangeNotifier {
     }
     if (text.trim().isEmpty) return false;
 
+    // Optimistically add outgoing message
     final msg = Message(
       id: _nextId++,
       text: text.trim(),
@@ -105,10 +144,32 @@ class MessagingProvider extends ChangeNotifier {
     _messages.add(msg);
     _sendError = null;
     notifyListeners();
+
+    // Send via platform service
+    if (_platformService != null) {
+      try {
+        final success = await _platformService!.sendMessage({
+          'text': text.trim(),
+          'channel': channel,
+          if (destinationNodeId != null) 'destinationNodeId': destinationNodeId,
+        });
+        if (!success) {
+          _sendError = 'Send failed';
+          notifyListeners();
+          _clearErrorAfterDelay();
+        }
+        return success;
+      } catch (e) {
+        _sendError = e.toString();
+        notifyListeners();
+        _clearErrorAfterDelay();
+        return false;
+      }
+    }
     return true;
   }
 
-  /// Simulate receiving a message (for testing)
+  /// Receive a message (for testing / fallback)
   void receiveMessage({
     required String text,
     required String from,
@@ -136,5 +197,11 @@ class MessagingProvider extends ChangeNotifier {
       _sendError = null;
       notifyListeners();
     });
+  }
+
+  @override
+  void dispose() {
+    _messageSubscription?.cancel();
+    super.dispose();
   }
 }

@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
+import '../services/platform_service.dart';
 
 class MeshNode {
   final String id;
@@ -61,6 +63,10 @@ class MeshNode {
 }
 
 class NetworkProvider extends ChangeNotifier {
+  final PlatformService? _platformService;
+  StreamSubscription<Map<String, dynamic>>? _nodeSubscription;
+  StreamSubscription<Map<String, dynamic>>? _stateSubscription;
+
   final List<MeshNode> _nodes = [];
   bool _connected = false;
   String? _transportKind;
@@ -79,6 +85,42 @@ class NetworkProvider extends ChangeNotifier {
     } catch (_) {
       return null;
     }
+  }
+
+  NetworkProvider({PlatformService? platformService}) : _platformService = platformService {
+    _listenToPlatform();
+  }
+
+  void _listenToPlatform() {
+    if (_platformService == null) return;
+
+    _nodeSubscription = _platformService!.onNodeUpdate.listen((event) {
+      final id = event['id']?.toString() ?? '';
+      if (id.isEmpty) return;
+
+      final node = MeshNode(
+        id: id,
+        shortName: event['shortName'] as String? ?? '',
+        longName: event['longName'] as String? ?? '',
+        role: event['role'] as String? ?? 'client',
+        snr: (event['snr'] as num?)?.toDouble() ?? (event['avgSnr'] as num?)?.toDouble() ?? 0.0,
+        lastHeard: event['lastHeard'] != null
+            ? DateTime.fromMillisecondsSinceEpoch(event['lastHeard'] as int)
+            : DateTime.now(),
+        lat: (event['lat'] as num?)?.toDouble(),
+        lon: (event['lon'] as num?)?.toDouble(),
+        rssi: (event['rssi'] as num?)?.toInt(),
+      );
+      addNode(node);
+    });
+
+    _stateSubscription = _platformService!.onStateChange.listen((event) {
+      final connected = event['connected'] as bool?;
+      final transport = event['transportKind'] as String?;
+      if (connected != null) _connected = connected;
+      if (transport != null) _transportKind = transport;
+      notifyListeners();
+    });
   }
 
   void setConnected(bool value, {String? transport}) {
@@ -129,5 +171,12 @@ class NetworkProvider extends ChangeNotifier {
     } catch (_) {
       return '!$id';
     }
+  }
+
+  @override
+  void dispose() {
+    _nodeSubscription?.cancel();
+    _stateSubscription?.cancel();
+    super.dispose();
   }
 }

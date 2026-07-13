@@ -1,7 +1,12 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/bookmark.dart';
+import '../services/platform_service.dart';
 
 class SpectrumProvider extends ChangeNotifier {
+  final PlatformService? _platformService;
+  StreamSubscription<Map<String, dynamic>>? _rtlSubscription;
+
   // Spectrum data
   List<double> _spectrumData = [];
   List<List<double>> _waterfallData = [];
@@ -71,6 +76,30 @@ class SpectrumProvider extends ChangeNotifier {
   // Center freq in MHz for display
   double get centerFreqMHz => _centerFreqHz / 1e6;
   double get vfoFreqMHz => _vfoFreqHz / 1e6;
+
+  SpectrumProvider({PlatformService? platformService}) : _platformService = platformService {
+    _listenToPlatform();
+  }
+
+  void _listenToPlatform() {
+    if (_platformService == null) return;
+
+    _rtlSubscription = _platformService!.onRtlSpectrum.listen((event) {
+      final centerFreq = (event['centerFreq'] as num?)?.toDouble() ?? _centerFreqHz;
+      final sampleRate = (event['sampleRate'] as num?)?.toDouble() ?? _sampleRate;
+      final fft = (event['fftSize'] as num?)?.toInt() ?? _fftSize;
+      final magnitudes = event['magnitudes'];
+
+      List<double> data;
+      if (magnitudes is List) {
+        data = magnitudes.map((e) => (e as num).toDouble()).toList();
+      } else {
+        return; // No valid data
+      }
+
+      updateSpectrumData(data, centerFreq, sampleRate, fft);
+    });
+  }
 
   // Setters
   void setVfoFreq(double hz) {
@@ -201,7 +230,7 @@ class SpectrumProvider extends ChangeNotifier {
     }
   }
 
-  // Update spectrum data (called from external source)
+  // Update spectrum data (called from external source or platform stream)
   void updateSpectrumData(List<double> data, double centerHz, double sRate, int fft) {
     _spectrumData = data;
     _centerFreqHz = centerHz;
@@ -269,5 +298,11 @@ class SpectrumProvider extends ChangeNotifier {
   void tickMockData() {
     if (!_mockSource) return;
     _generateMockData();
+  }
+
+  @override
+  void dispose() {
+    _rtlSubscription?.cancel();
+    super.dispose();
   }
 }

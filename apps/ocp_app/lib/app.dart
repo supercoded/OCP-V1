@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ocp_flutter_core/ocp_flutter_core.dart';
+import 'services/service_locator.dart';
 import 'providers/connection_provider.dart';
 import 'providers/sonar_provider.dart';
 import 'providers/messaging_provider.dart';
@@ -13,13 +14,15 @@ class OcpApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final platform = ServiceLocator.platform;
+
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ConnectionProvider()),
-        ChangeNotifierProvider(create: (_) => SonarProvider()),
-        ChangeNotifierProvider(create: (_) => MessagingProvider()),
-        ChangeNotifierProvider(create: (_) => NetworkProvider()),
-        ChangeNotifierProvider(create: (_) => SpectrumProvider()),
+        ChangeNotifierProvider(create: (_) => ConnectionProvider(platformService: platform)),
+        ChangeNotifierProvider(create: (_) => SonarProvider(platformService: platform)),
+        ChangeNotifierProvider(create: (_) => MessagingProvider(platformService: platform)),
+        ChangeNotifierProvider(create: (_) => NetworkProvider(platformService: platform)),
+        ChangeNotifierProvider(create: (_) => SpectrumProvider(platformService: platform)),
       ],
       child: MaterialApp(
         title: 'OCP‑V1',

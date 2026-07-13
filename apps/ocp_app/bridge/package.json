@@ -1,0 +1,15 @@
+{
+  "name": "@ocp/ocp-app-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "WebSocket bridge server connecting the Flutter desktop app to OCP Node.js packages",
+  "main": "bridge_server.js",
+  "scripts": {
+    "bridge:start": "node bridge_server.js",
+    "bridge:dev": "node --watch bridge_server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
