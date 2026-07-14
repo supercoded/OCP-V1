@@ -82,7 +82,11 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
 
-      - name: Get dependencies
+      - name: Get dependencies (core package)
+        working-directory: packages/ocp_flutter_core
+        run: flutter pub get
+
+      - name: Get dependencies (app)
         working-directory: apps/ocp_app
         run: flutter pub get
 
@@ -117,7 +121,11 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Get dependencies
+      - name: Get dependencies (core package)
+        working-directory: packages/ocp_flutter_core
+        run: flutter pub get
+
+      - name: Get dependencies (app)
         working-directory: apps/ocp_app
         run: flutter pub get
 

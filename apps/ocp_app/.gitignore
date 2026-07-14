@@ -1,0 +1,38 @@
+# Flutter/Dart/Pub
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+pubspec.lock
+
+# Generated Linux build files
+linux/flutter/
+
+# Generated Android build files
+android/.gradle/
+android/app/.gradle/
+android/build/
+android/app/build/
+
+# iOS
+ios/
+
+# macOS
+macos/
+
+# Windows
+windows/
+
+# Web
+web/
+
+# Coverage
+coverage/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# .packages (deprecated)
+.packages

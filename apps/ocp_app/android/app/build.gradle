@@ -18,7 +18,6 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add signing config for release builds
             signingConfig signingConfigs.debug
         }
     }
