@@ -30,7 +30,7 @@ class NetworkPage extends StatelessWidget {
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 2,
-                  color: OcpColors.ocpAccent,
+                  color: OcpColors.ocpBright,
                 ),
               ),
               Row(
@@ -44,7 +44,7 @@ class NetworkPage extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11,
                       fontFamily: 'JetBrainsMono',
-                      color: conn.connected ? OcpColors.ocpAccent : OcpColors.ocpRed,
+                      color: conn.connected ? OcpColors.ocpGreen : OcpColors.ocpRed,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -53,7 +53,7 @@ class NetworkPage extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 11,
                       fontFamily: 'JetBrainsMono',
-                      color: OcpColors.ocpTextMuted,
+                      color: OcpColors.ocpDim,
                     ),
                   ),
                 ],
@@ -76,13 +76,13 @@ class NetworkPage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.hub, size: 48, color: OcpColors.ocpTextMuted),
+            const Icon(Icons.hub, size: 48, color: OcpColors.ocpDim),
             const SizedBox(height: 16),
             Text(
               network.connected ? 'Waiting for mesh nodes...' : 'Connect a Meshtastic device to view nodes',
               style: const TextStyle(
                 fontSize: 13,
-                color: OcpColors.ocpTextMuted,
+                color: OcpColors.ocpDim,
               ),
             ),
           ],
@@ -113,26 +113,26 @@ class NetworkPage extends StatelessWidget {
               children: [
                 SizedBox(
                   width: 160,
-                  child: Text('NODE ID', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpTextMuted)),
+                  child: Text('NODE ID', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpDim)),
                 ),
                 SizedBox(
                   width: 80,
-                  child: Text('SHORT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpTextMuted)),
+                  child: Text('SHORT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpDim)),
                 ),
                 Expanded(
-                  child: Text('LONG NAME', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpTextMuted)),
+                  child: Text('LONG NAME', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpDim)),
                 ),
                 SizedBox(
                   width: 80,
-                  child: Text('ROLE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpTextMuted)),
+                  child: Text('ROLE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpDim)),
                 ),
                 SizedBox(
                   width: 70,
-                  child: Text('SNR', textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpTextMuted)),
+                  child: Text('SNR', textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpDim)),
                 ),
                 SizedBox(
                   width: 90,
-                  child: Text('LAST HEARD', textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpTextMuted)),
+                  child: Text('LAST HEARD', textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpDim)),
                 ),
               ],
             ),
@@ -150,7 +150,7 @@ class NetworkPage extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: isSelected ? OcpColors.ocpAccent.withAlpha(26) : Colors.transparent,
+                      color: isSelected ? OcpColors.ocpBright.withAlpha(26) : Colors.transparent,
                       border: Border(
                         bottom: BorderSide(color: OcpColors.ocpBorder.withAlpha(128)),
                       ),
@@ -175,7 +175,7 @@ class NetworkPage extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 12,
                               fontFamily: 'JetBrainsMono',
-                              color: node.shortName.isNotEmpty ? OcpColors.ocpText : OcpColors.ocpTextMuted,
+                              color: node.shortName.isNotEmpty ? OcpColors.ocpText : OcpColors.ocpDim,
                             ),
                           ),
                         ),
@@ -184,7 +184,7 @@ class NetworkPage extends StatelessWidget {
                             node.longName,
                             style: TextStyle(
                               fontSize: 12,
-                              color: node.longName.isNotEmpty ? OcpColors.ocpText : OcpColors.ocpTextMuted,
+                              color: node.longName.isNotEmpty ? OcpColors.ocpText : OcpColors.ocpDim,
                             ),
                           ),
                         ),
@@ -216,7 +216,7 @@ class NetworkPage extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 12,
                               fontFamily: 'JetBrainsMono',
-                              color: node.snr > 5 ? OcpColors.ocpAccent : (node.snr > 0 ? OcpColors.ocpAmber : OcpColors.ocpRed),
+                              color: node.snr > 5 ? OcpColors.ocpGreen : (node.snr > 0 ? OcpColors.ocpAmber : OcpColors.ocpRed),
                             ),
                           ),
                         ),
@@ -228,7 +228,7 @@ class NetworkPage extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 11,
                               fontFamily: 'JetBrainsMono',
-                              color: OcpColors.ocpTextMuted,
+                              color: OcpColors.ocpDim,
                             ),
                           ),
                         ),
@@ -251,9 +251,9 @@ class NetworkPage extends StatelessWidget {
       case 'repeater':
         return OcpColors.ocpCyan;
       case 'client':
-        return OcpColors.ocpAccent;
+        return OcpColors.ocpBright;
       default:
-        return OcpColors.ocpTextMuted;
+        return OcpColors.ocpDim;
     }
   }
 

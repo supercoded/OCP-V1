@@ -98,9 +98,9 @@ class _SonarPainter extends CustomPainter {
 
     // Range rings
     final ringPaint = Paint()
-      ..color = OcpColors.ocpBorder.withValues(alpha: 0.5)
+      ..color = OcpColors.ocpGrid
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+      ..strokeWidth = 0.5;
 
     for (final frac in [0.25, 0.5, 0.75, 1.0]) {
       canvas.drawCircle(center, radius * frac, ringPaint);
@@ -108,8 +108,8 @@ class _SonarPainter extends CustomPainter {
 
     // Bearing lines (every 30°)
     final bearingPaint = Paint()
-      ..color = OcpColors.ocpBorder.withValues(alpha: 0.3)
-      ..strokeWidth = 1;
+      ..color = OcpColors.ocpGrid
+      ..strokeWidth = 0.5;
 
     const labels = ['N', '30', '60', 'E', '120', '150', 'S', '210', '240', 'W', '300', '330'];
 
@@ -126,7 +126,7 @@ class _SonarPainter extends CustomPainter {
         text: TextSpan(
           text: labels[i],
           style: TextStyle(
-            color: OcpColors.ocpTextMuted,
+            color: OcpColors.ocpDim,
             fontSize: 10,
             fontFamily: 'JetBrainsMono',
           ),
@@ -137,34 +137,33 @@ class _SonarPainter extends CustomPainter {
       tp.paint(canvas, Offset(labelX - tp.width / 2, labelY - tp.height / 2));
     }
 
-    // Sweep arm with afterglow
-    // Main sweep line
+    // Sweep arm — thin bright line, no glow
     final sweepEndX = center.dx + radius * sin(sweepAngle);
     final sweepEndY = center.dy - radius * cos(sweepAngle);
 
     final sweepPaint = Paint()
-      ..color = OcpColors.ocpAccent
-      ..strokeWidth = 2
+      ..color = OcpColors.ocpBright
+      ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
     canvas.drawLine(center, Offset(sweepEndX, sweepEndY), sweepPaint);
 
-    // Afterglow arc (30° trail)
-    const afterglowAngle = 30.0 * pi / 180;
-    for (int i = 0; i < 15; i++) {
-      final trailAngle = sweepAngle - afterglowAngle * (i / 15);
-      final alpha = (1.0 - i / 15) * 0.3;
+    // Subtle afterglow arc (20° trail)
+    const afterglowAngle = 20.0 * pi / 180;
+    for (int i = 0; i < 10; i++) {
+      final trailAngle = sweepAngle - afterglowAngle * (i / 10);
+      final alpha = (1.0 - i / 10) * 0.15;
       final endX = center.dx + radius * sin(trailAngle);
       final endY = center.dy - radius * cos(trailAngle);
       canvas.drawLine(
         center,
         Offset(endX, endY),
         Paint()
-          ..color = OcpColors.ocpAccent.withValues(alpha: alpha)
-          ..strokeWidth = 1,
+          ..color = OcpColors.ocpDim.withValues(alpha: alpha)
+          ..strokeWidth = 0.5,
       );
     }
 
-    // Blips
+    // Blips — status-colored dots, no glow
     for (final blip in blips) {
       final opacity = blip.opacity;
       if (opacity <= 0) continue;
@@ -172,18 +171,7 @@ class _SonarPainter extends CustomPainter {
       final blipAngle = blip.bearing * pi / 180;
       final blipX = center.dx + radius * blip.range * sin(blipAngle);
       final blipY = center.dy - radius * blip.range * cos(blipAngle);
-      final blipRadius = blip.isHighlighted ? 6.0 : 4.0;
-
-      // Glow
-      canvas.drawCircle(
-        Offset(blipX, blipY),
-        blipRadius + 3,
-        Paint()
-          ..color = (blip.isHighlighted
-                  ? OcpColors.ocpAmber
-                  : OcpColors.ocpAccent)
-              .withValues(alpha: opacity * 0.3),
-      );
+      final blipRadius = blip.isHighlighted ? 5.0 : 3.0;
 
       // Dot
       canvas.drawCircle(
@@ -192,7 +180,7 @@ class _SonarPainter extends CustomPainter {
         Paint()
           ..color = (blip.isHighlighted
                   ? OcpColors.ocpAmber
-                  : OcpColors.ocpAccent)
+                  : OcpColors.ocpGreen)
               .withValues(alpha: opacity),
       );
 
@@ -221,7 +209,7 @@ class _SonarPainter extends CustomPainter {
         text: TextSpan(
           text: '${km}km',
           style: TextStyle(
-            color: OcpColors.ocpTextMuted,
+            color: OcpColors.ocpDim,
             fontSize: 9,
             fontFamily: 'JetBrainsMono',
           ),

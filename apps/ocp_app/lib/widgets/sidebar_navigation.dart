@@ -36,15 +36,22 @@ class SidebarNavigation extends StatelessWidget {
             onTap: () => onTap(index),
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 12),
-              color: isActive ? OcpColors.ocpAccent.withValues(alpha: 0.2) : Colors.transparent,
+              decoration: BoxDecoration(
+                color: isActive ? OcpColors.ocpPanel3 : Colors.transparent,
+                border: isActive
+                    ? const Border(
+                        left: BorderSide(color: OcpColors.ocpBright, width: 2),
+                      )
+                    : null,
+              ),
               child: Column(
                 children: [
-                  Icon(item.icon, color: isActive ? OcpColors.ocpAccent : OcpColors.ocpTextMuted),
+                  Icon(item.icon, color: isActive ? OcpColors.ocpBright : OcpColors.ocpDim),
                   const SizedBox(height: 4),
                   Text(
                     item.title,
                     style: OcpTextStyles.caption.copyWith(
-                      color: isActive ? OcpColors.ocpAccent : OcpColors.ocpTextMuted,
+                      color: isActive ? OcpColors.ocpBright : OcpColors.ocpDim,
                     ),
                   ),
                 ],

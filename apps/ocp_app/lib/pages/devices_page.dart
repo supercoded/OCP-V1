@@ -62,7 +62,7 @@ class _DevicesPageState extends State<DevicesPage> {
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 2,
-                  color: OcpColors.ocpAccent,
+                  color: OcpColors.ocpBright,
                 ),
               ),
               Row(
@@ -79,7 +79,7 @@ class _DevicesPageState extends State<DevicesPage> {
                           color: isActive ? OcpColors.ocpPanel2 : Colors.transparent,
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(
-                            color: isActive ? OcpColors.ocpAccent : OcpColors.ocpBorder,
+                            color: isActive ? OcpColors.ocpBright : OcpColors.ocpBorder,
                           ),
                         ),
                         child: Text(
@@ -88,7 +88,7 @@ class _DevicesPageState extends State<DevicesPage> {
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 1,
-                            color: isActive ? OcpColors.ocpAccent : OcpColors.ocpTextMuted,
+                            color: isActive ? OcpColors.ocpBright : OcpColors.ocpDim,
                           ),
                         ),
                       ),
@@ -158,7 +158,7 @@ class _DevicesPageState extends State<DevicesPage> {
                 children: [
                   const Text(
                     'STATUS',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpTextMuted),
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpDim),
                   ),
                   Row(
                     children: [
@@ -171,7 +171,7 @@ class _DevicesPageState extends State<DevicesPage> {
                         style: TextStyle(
                           fontSize: 11,
                           fontFamily: 'JetBrainsMono',
-                          color: conn.connected ? OcpColors.ocpAccent : OcpColors.ocpTextMuted,
+                          color: conn.connected ? OcpColors.ocpGreen : OcpColors.ocpDim,
                         ),
                       ),
                     ],
@@ -261,7 +261,7 @@ class _DevicesPageState extends State<DevicesPage> {
                 children: [
                   const Text(
                     'STATUS',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpTextMuted),
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpDim),
                   ),
                   Row(
                     children: [
@@ -272,7 +272,7 @@ class _DevicesPageState extends State<DevicesPage> {
                         style: TextStyle(
                           fontSize: 11,
                           fontFamily: 'JetBrainsMono',
-                          color: conn.ruViewConnected ? OcpColors.ocpAccent : OcpColors.ocpTextMuted,
+                          color: conn.ruViewConnected ? OcpColors.ocpGreen : OcpColors.ocpDim,
                         ),
                       ),
                     ],
@@ -290,7 +290,7 @@ class _DevicesPageState extends State<DevicesPage> {
               const SizedBox(height: 8),
               const Text(
                 'Requires the RuView sensing server. Run the Docker simulator with: bash scripts/run-ruview-simulator.sh',
-                style: TextStyle(fontSize: 10, color: OcpColors.ocpTextMuted, height: 1.4),
+                style: TextStyle(fontSize: 10, color: OcpColors.ocpDim, height: 1.4),
               ),
               const SizedBox(height: 12),
               Row(
@@ -348,7 +348,7 @@ class _DevicesPageState extends State<DevicesPage> {
         children: [
           const Text(
             'Use the CLI script to list releases, download assets, and flash firmware with external tools.',
-            style: TextStyle(fontSize: 12, color: OcpColors.ocpTextMuted, height: 1.4),
+            style: TextStyle(fontSize: 12, color: OcpColors.ocpDim, height: 1.4),
           ),
           const SizedBox(height: 16),
           _buildCodeBlock('npm run firmware:list'),
@@ -357,7 +357,7 @@ class _DevicesPageState extends State<DevicesPage> {
           const SizedBox(height: 16),
           const Text(
             'Requires esptool.py for ESP32 boards or nrfutil for nRF52/RAK4631 boards.',
-            style: TextStyle(fontSize: 10, color: OcpColors.ocpTextMuted, height: 1.4),
+            style: TextStyle(fontSize: 10, color: OcpColors.ocpDim, height: 1.4),
           ),
         ],
       ),
@@ -379,7 +379,7 @@ class _DevicesPageState extends State<DevicesPage> {
                 style: TextStyle(
                   fontSize: 12,
                   fontFamily: 'JetBrainsMono',
-                  color: conn.baofengConnected ? OcpColors.ocpAccent : OcpColors.ocpTextMuted,
+                  color: conn.baofengConnected ? OcpColors.ocpGreen : OcpColors.ocpDim,
                 ),
               ),
             ],
@@ -387,7 +387,7 @@ class _DevicesPageState extends State<DevicesPage> {
           const SizedBox(height: 16),
           const Text(
             'Baofeng UV-5R series channel editor for programming frequencies, CTCSS/DCS tones, and power settings.',
-            style: TextStyle(fontSize: 12, color: OcpColors.ocpTextMuted, height: 1.4),
+            style: TextStyle(fontSize: 12, color: OcpColors.ocpDim, height: 1.4),
           ),
           const SizedBox(height: 16),
           Container(
@@ -410,7 +410,7 @@ class _DevicesPageState extends State<DevicesPage> {
                 Text(
                   'Full Baofeng programming requires serial cable access\nand is currently available in the desktop (Electron) app only.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 10, color: OcpColors.ocpTextMuted, height: 1.4),
+                  style: TextStyle(fontSize: 10, color: OcpColors.ocpDim, height: 1.4),
                 ),
               ],
             ),
@@ -439,7 +439,7 @@ class _DevicesPageState extends State<DevicesPage> {
               fontSize: 10,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.2,
-              color: OcpColors.ocpTextMuted,
+              color: OcpColors.ocpDim,
             ),
           ),
           const SizedBox(height: 12),
@@ -455,7 +455,7 @@ class _DevicesPageState extends State<DevicesPage> {
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpTextMuted),
+          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpDim),
         ),
         const SizedBox(height: 4),
         TextField(
@@ -463,7 +463,7 @@ class _DevicesPageState extends State<DevicesPage> {
           style: const TextStyle(fontSize: 12, fontFamily: 'JetBrainsMono', color: OcpColors.ocpText),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: OcpColors.ocpTextMuted.withAlpha(128), fontSize: 12),
+            hintStyle: TextStyle(color: OcpColors.ocpDim.withAlpha(128), fontSize: 12),
             filled: true,
             fillColor: OcpColors.ocpBg,
             contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -478,7 +478,7 @@ class _DevicesPageState extends State<DevicesPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(4),
-              borderSide: const BorderSide(color: OcpColors.ocpAccent),
+              borderSide: const BorderSide(color: OcpColors.ocpBright),
             ),
           ),
         ),
@@ -497,9 +497,9 @@ class _DevicesPageState extends State<DevicesPage> {
             width: 40,
             height: 22,
             decoration: BoxDecoration(
-              color: value ? OcpColors.ocpAccent : OcpColors.ocpPanel2,
+              color: value ? OcpColors.ocpGreen : OcpColors.ocpPanel2,
               borderRadius: BorderRadius.circular(11),
-              border: Border.all(color: value ? OcpColors.ocpAccent : OcpColors.ocpBorder),
+              border: Border.all(color: value ? OcpColors.ocpGreen : OcpColors.ocpBorder),
             ),
             child: AnimatedAlign(
               duration: const Duration(milliseconds: 150),
@@ -509,7 +509,7 @@ class _DevicesPageState extends State<DevicesPage> {
                 height: 16,
                 margin: const EdgeInsets.symmetric(horizontal: 3),
                 decoration: BoxDecoration(
-                  color: value ? OcpColors.ocpBg : OcpColors.ocpTextMuted,
+                  color: value ? OcpColors.ocpBg : OcpColors.ocpDim,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -526,7 +526,7 @@ class _DevicesPageState extends State<DevicesPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, fontFamily: 'JetBrainsMono', color: OcpColors.ocpTextMuted)),
+          Text(label, style: const TextStyle(fontSize: 12, fontFamily: 'JetBrainsMono', color: OcpColors.ocpDim)),
           Text(value, style: const TextStyle(fontSize: 12, fontFamily: 'JetBrainsMono', color: OcpColors.ocpText)),
         ],
       ),
@@ -544,7 +544,7 @@ class _DevicesPageState extends State<DevicesPage> {
       ),
       child: Text(
         code,
-        style: const TextStyle(fontSize: 10, fontFamily: 'JetBrainsMono', color: OcpColors.ocpAccent),
+        style: const TextStyle(fontSize: 10, fontFamily: 'JetBrainsMono', color: OcpColors.ocpBright),
       ),
     );
   }
@@ -566,14 +566,14 @@ class _DevicesPageState extends State<DevicesPage> {
               ),
               Text(
                 _formatLastUsed(rc.lastUsed),
-                style: const TextStyle(fontSize: 10, fontFamily: 'JetBrainsMono', color: OcpColors.ocpTextMuted),
+                style: const TextStyle(fontSize: 10, fontFamily: 'JetBrainsMono', color: OcpColors.ocpDim),
               ),
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: () => _handleRecentConnect(rc),
                 child: const Text(
                   'CONNECT',
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: OcpColors.ocpAccent, letterSpacing: 1),
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: OcpColors.ocpGreen, letterSpacing: 1),
                 ),
               ),
             ],

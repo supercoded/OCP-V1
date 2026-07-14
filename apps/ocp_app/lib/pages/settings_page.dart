@@ -58,7 +58,7 @@ class SettingsPage extends StatelessWidget {
               fontSize: 16,
               fontWeight: FontWeight.w600,
               letterSpacing: 2,
-              color: OcpColors.ocpAccent,
+              color: OcpColors.ocpBright,
             ),
           ),
           const SizedBox(height: 20),
@@ -230,10 +230,10 @@ class SettingsPage extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: isActive ? OcpColors.ocpAccent : Colors.transparent,
+                    color: isActive ? OcpColors.ocpBright : Colors.transparent,
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(
-                      color: isActive ? OcpColors.ocpAccent : OcpColors.ocpBorder,
+                      color: isActive ? OcpColors.ocpBright : OcpColors.ocpBorder,
                     ),
                   ),
                   child: Text(
@@ -242,7 +242,7 @@ class SettingsPage extends StatelessWidget {
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 1,
-                      color: isActive ? OcpColors.ocpBg : OcpColors.ocpTextMuted,
+                      color: isActive ? OcpColors.ocpBg : OcpColors.ocpDim,
                     ),
                   ),
                 ),
@@ -335,7 +335,7 @@ class SettingsPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(d.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: OcpColors.ocpText)),
-                    Text(d.purpose, style: const TextStyle(fontSize: 10, color: OcpColors.ocpTextMuted)),
+                    Text(d.purpose, style: const TextStyle(fontSize: 10, color: OcpColors.ocpDim)),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -347,7 +347,7 @@ class SettingsPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(color: OcpColors.ocpBorder),
                   ),
-                  child: Text(d.install, style: const TextStyle(fontSize: 10, fontFamily: 'JetBrainsMono', color: OcpColors.ocpAccent)),
+                  child: Text(d.install, style: const TextStyle(fontSize: 10, fontFamily: 'JetBrainsMono', color: OcpColors.ocpBright)),
                 ),
               ],
             ),
@@ -356,7 +356,7 @@ class SettingsPage extends StatelessWidget {
       const Text(
         'OCP-V1 does not bundle these tools because their licenses and architectures vary. '
         'The installer will prompt you to install missing tools on first run in a future update.',
-        style: TextStyle(fontSize: 10, color: OcpColors.ocpTextMuted, height: 1.4),
+        style: TextStyle(fontSize: 10, color: OcpColors.ocpDim, height: 1.4),
       ),
     ]);
   }
@@ -377,7 +377,7 @@ class SettingsPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: OcpColors.ocpAccent,
+              color: OcpColors.ocpGreen,
               borderRadius: BorderRadius.circular(4),
             ),
             child: const Text(
@@ -390,7 +390,7 @@ class SettingsPage extends StatelessWidget {
       const SizedBox(height: 8),
       const Text(
         'Dark mode is the only supported theme. Light mode is planned for a future release.',
-        style: TextStyle(fontSize: 10, color: OcpColors.ocpTextMuted, height: 1.4),
+        style: TextStyle(fontSize: 10, color: OcpColors.ocpDim, height: 1.4),
       ),
       const SizedBox(height: 12),
       // Reset to defaults
@@ -400,7 +400,7 @@ class SettingsPage extends StatelessWidget {
         },
         child: const Text(
           'RESET TO DEFAULTS',
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1, color: OcpColors.ocpBg),
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1, color: OcpColors.ocpBright),
         ),
       ),
     ]);
@@ -426,7 +426,7 @@ class SettingsPage extends StatelessWidget {
               fontSize: 10,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.2,
-              color: OcpColors.ocpTextMuted,
+              color: OcpColors.ocpDim,
             ),
           ),
           const SizedBox(height: 12),
@@ -455,16 +455,16 @@ class SettingsPage extends StatelessWidget {
             Text(label, style: const TextStyle(fontSize: 12, color: OcpColors.ocpText)),
             Text(
               '${value.toStringAsFixed(decimals)} $unit',
-              style: const TextStyle(fontSize: 11, fontFamily: 'JetBrainsMono', color: OcpColors.ocpAccent),
+              style: const TextStyle(fontSize: 11, fontFamily: 'JetBrainsMono', color: OcpColors.ocpBright),
             ),
           ],
         ),
         SliderTheme(
           data: SliderThemeData(
-            activeTrackColor: OcpColors.ocpAccent,
+            activeTrackColor: OcpColors.ocpGreen,
             inactiveTrackColor: OcpColors.ocpBorder,
-            thumbColor: OcpColors.ocpAccent,
-            overlayColor: OcpColors.ocpAccent.withAlpha(26),
+            thumbColor: OcpColors.ocpGreen,
+            overlayColor: OcpColors.ocpGreen.withAlpha(26),
             trackHeight: 3,
           ),
           child: Slider(
@@ -485,7 +485,7 @@ class SettingsPage extends StatelessWidget {
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpTextMuted),
+          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpDim),
         ),
         const SizedBox(height: 4),
         TextField(
@@ -494,7 +494,7 @@ class SettingsPage extends StatelessWidget {
           style: const TextStyle(fontSize: 12, fontFamily: 'JetBrainsMono', color: OcpColors.ocpText),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: OcpColors.ocpTextMuted.withAlpha(128), fontSize: 12),
+            hintStyle: TextStyle(color: OcpColors.ocpDim.withAlpha(128), fontSize: 12),
             filled: true,
             fillColor: OcpColors.ocpBg,
             contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -509,7 +509,7 @@ class SettingsPage extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(4),
-              borderSide: const BorderSide(color: OcpColors.ocpAccent),
+              borderSide: const BorderSide(color: OcpColors.ocpBright),
             ),
           ),
         ),
@@ -528,9 +528,9 @@ class SettingsPage extends StatelessWidget {
             width: 40,
             height: 22,
             decoration: BoxDecoration(
-              color: value ? OcpColors.ocpAccent : OcpColors.ocpPanel2,
+              color: value ? OcpColors.ocpGreen : OcpColors.ocpPanel2,
               borderRadius: BorderRadius.circular(11),
-              border: Border.all(color: value ? OcpColors.ocpAccent : OcpColors.ocpBorder),
+              border: Border.all(color: value ? OcpColors.ocpGreen : OcpColors.ocpBorder),
             ),
             child: AnimatedAlign(
               duration: const Duration(milliseconds: 150),
@@ -540,7 +540,7 @@ class SettingsPage extends StatelessWidget {
                 height: 16,
                 margin: const EdgeInsets.symmetric(horizontal: 3),
                 decoration: BoxDecoration(
-                  color: value ? OcpColors.ocpBg : OcpColors.ocpTextMuted,
+                  color: value ? OcpColors.ocpBg : OcpColors.ocpDim,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -557,13 +557,13 @@ class SettingsPage extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, fontFamily: 'JetBrainsMono', color: OcpColors.ocpTextMuted)),
+          Text(label, style: const TextStyle(fontSize: 12, fontFamily: 'JetBrainsMono', color: OcpColors.ocpDim)),
           Text(
             value,
             style: TextStyle(
               fontSize: 12,
               fontFamily: 'JetBrainsMono',
-              color: highlight ? OcpColors.ocpAccent : OcpColors.ocpText,
+              color: highlight ? OcpColors.ocpBright : OcpColors.ocpText,
             ),
           ),
         ],

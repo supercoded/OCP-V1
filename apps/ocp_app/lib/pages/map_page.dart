@@ -45,7 +45,7 @@ class _MapPageState extends State<MapPage> {
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 2,
-                  color: OcpColors.ocpAccent,
+                  color: OcpColors.ocpBright,
                 ),
               ),
               Row(
@@ -57,13 +57,13 @@ class _MapPageState extends State<MapPage> {
                     style: TextStyle(
                       fontSize: 11,
                       fontFamily: 'JetBrainsMono',
-                      color: conn.connected ? OcpColors.ocpAccent : OcpColors.ocpTextMuted,
+                      color: conn.connected ? OcpColors.ocpGreen : OcpColors.ocpDim,
                     ),
                   ),
                   const SizedBox(width: 16),
                   Text(
                     '${positionedNodes.length} nodes',
-                    style: const TextStyle(fontSize: 11, fontFamily: 'JetBrainsMono', color: OcpColors.ocpTextMuted),
+                    style: const TextStyle(fontSize: 11, fontFamily: 'JetBrainsMono', color: OcpColors.ocpDim),
                   ),
                 ],
               ),
@@ -98,7 +98,7 @@ class _MapPageState extends State<MapPage> {
                         ),
                         child: Text(
                           _statusText(conn, positionedNodes),
-                          style: const TextStyle(fontSize: 10, fontFamily: 'JetBrainsMono', color: OcpColors.ocpTextMuted),
+                          style: const TextStyle(fontSize: 10, fontFamily: 'JetBrainsMono', color: OcpColors.ocpDim),
                         ),
                       ),
                     ),
@@ -123,7 +123,7 @@ class _MapPageState extends State<MapPage> {
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.2,
-                          color: OcpColors.ocpTextMuted,
+                          color: OcpColors.ocpDim,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -138,7 +138,7 @@ class _MapPageState extends State<MapPage> {
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.2,
-                          color: OcpColors.ocpTextMuted,
+                          color: OcpColors.ocpDim,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -184,14 +184,14 @@ class _MapPageState extends State<MapPage> {
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.2,
-                          color: OcpColors.ocpTextMuted,
+                          color: OcpColors.ocpDim,
                         ),
                       ),
                       const SizedBox(height: 8),
                       if (positionedNodes.isEmpty)
                         const Text(
                           'No nodes with position data',
-                          style: TextStyle(fontSize: 10, color: OcpColors.ocpTextMuted),
+                          style: TextStyle(fontSize: 10, color: OcpColors.ocpDim),
                         )
                       else
                         ...positionedNodes.map((node) => Padding(
@@ -202,11 +202,9 @@ class _MapPageState extends State<MapPage> {
                                     width: 8,
                                     height: 8,
                                     decoration: BoxDecoration(
-                                      color: OcpColors.ocpAccent,
+                                      color: OcpColors.ocpBright,
                                       shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(color: OcpColors.ocpAccent.withAlpha(153), blurRadius: 4, spreadRadius: 1),
-                                      ],
+                                      boxShadow: [],
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -220,7 +218,7 @@ class _MapPageState extends State<MapPage> {
                                         ),
                                         Text(
                                           '${node.lat!.toStringAsFixed(4)}, ${node.lon!.toStringAsFixed(4)}',
-                                          style: const TextStyle(fontSize: 9, fontFamily: 'JetBrainsMono', color: OcpColors.ocpTextMuted),
+                                          style: const TextStyle(fontSize: 9, fontFamily: 'JetBrainsMono', color: OcpColors.ocpDim),
                                         ),
                                       ],
                                     ),
@@ -252,9 +250,9 @@ class _MapPageState extends State<MapPage> {
               width: 36,
               height: 20,
               decoration: BoxDecoration(
-                color: value ? OcpColors.ocpAccent : OcpColors.ocpPanel2,
+                color: value ? OcpColors.ocpGreen : OcpColors.ocpPanel2,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: value ? OcpColors.ocpAccent : OcpColors.ocpBorder),
+                border: Border.all(color: value ? OcpColors.ocpGreen : OcpColors.ocpBorder),
               ),
               child: AnimatedAlign(
                 duration: const Duration(milliseconds: 150),
@@ -264,7 +262,7 @@ class _MapPageState extends State<MapPage> {
                   height: 14,
                   margin: const EdgeInsets.symmetric(horizontal: 3),
                   decoration: BoxDecoration(
-                    color: value ? OcpColors.ocpBg : OcpColors.ocpTextMuted,
+                    color: value ? OcpColors.ocpBg : OcpColors.ocpDim,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -304,7 +302,7 @@ class _MapPageState extends State<MapPage> {
         ),
         child: Row(
           children: [
-            Icon(icon, size: 14, color: OcpColors.ocpAccent),
+            Icon(icon, size: 14, color: OcpColors.ocpBright),
             const SizedBox(width: 8),
             Flexible(
               child: Text(
@@ -347,11 +345,11 @@ class _MapPlaceholderPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // Dark background
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = const Color(0xFF0A0E14));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = OcpColors.ocpBg);
 
     // Grid
     final gridPaint = Paint()
-      ..color = const Color(0xFF1E293B).withAlpha(51)
+      ..color = OcpColors.ocpBorder.withAlpha(51)
       ..strokeWidth = 0.5;
 
     final gridSize = 40.0;
@@ -366,7 +364,7 @@ class _MapPlaceholderPainter extends CustomPainter {
     final textPainter = TextPainter(
       text: const TextSpan(
         text: 'MapLibre GL integration requires flutter_map package',
-        style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14, fontFamily: 'JetBrainsMono'),
+        style: TextStyle(color: OcpColors.ocpDim, fontSize: 14, fontFamily: 'JetBrainsMono'),
       ),
       textDirection: TextDirection.ltr,
     );
@@ -375,9 +373,9 @@ class _MapPlaceholderPainter extends CustomPainter {
 
     // Place node markers in a grid pattern on the placeholder
     if (nodes.isNotEmpty) {
-      final markerPaint = Paint()..color = OcpColors.ocpAccent;
+      final markerPaint = Paint()..color = OcpColors.ocpGreen;
       final glowPaint = Paint()
-        ..color = OcpColors.ocpAccent.withAlpha(77)
+        ..color = OcpColors.ocpGreen.withAlpha(51)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2;
 

@@ -5,12 +5,12 @@ class OcpTextStyles {
   static const TextStyle title = TextStyle(
     fontSize: 24,
     fontWeight: FontWeight.bold,
-    color: OcpColors.ocpText,
+    color: OcpColors.ocpBright,
   );
   static const TextStyle subtitle = TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.w600,
-    color: OcpColors.ocpTextMuted,
+    color: OcpColors.ocpDim,
   );
   static const TextStyle body = TextStyle(
     fontSize: 14,
@@ -18,11 +18,11 @@ class OcpTextStyles {
   );
   static const TextStyle caption = TextStyle(
     fontSize: 12,
-    color: OcpColors.ocpTextMuted,
+    color: OcpColors.ocpDim,
   );
   static const TextStyle monospace = TextStyle(
-    fontFamily: 'monospace',
+    fontFamily: 'JetBrainsMono',
     fontSize: 14,
-    color: OcpColors.ocpCyan,
+    color: OcpColors.ocpDim,
   );
 }

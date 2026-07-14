@@ -12,9 +12,9 @@ class StatusLamp extends StatelessWidget {
   });
 
   Color _color() {
-    if (connected) return OcpColors.ocpAccent; // green phosphor
+    if (connected) return OcpColors.ocpGreen;
     if (connecting) return OcpColors.ocpAmber;
-    return OcpColors.ocpRed; // disconnected
+    return OcpColors.ocpRed;
   }
 
   @override
@@ -25,13 +25,6 @@ class StatusLamp extends StatelessWidget {
       decoration: BoxDecoration(
         color: _color(),
         shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: _color().withValues(alpha: 0.6),
-            blurRadius: 4,
-            spreadRadius: 1,
-          ),
-        ],
       ),
     );
   }

@@ -63,7 +63,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 2,
-                  color: OcpColors.ocpAccent,
+                  color: OcpColors.ocpBright,
                 ),
               ),
               Row(
@@ -98,7 +98,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
                     style: const TextStyle(
                       fontSize: 11,
                       fontFamily: 'JetBrainsMono',
-                      color: OcpColors.ocpTextMuted,
+                      color: OcpColors.ocpDim,
                     ),
                   ),
                 ],
@@ -170,7 +170,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
                         style: TextStyle(
                           fontSize: 9,
                           fontFamily: 'JetBrainsMono',
-                          color: OcpColors.ocpTextMuted.withAlpha(153),
+                          color: OcpColors.ocpDim.withAlpha(153),
                         ),
                       ),
                     ),
@@ -239,7 +239,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
             const SizedBox(height: 4),
             const Text(
               'Run rtl_tcp -a 0.0.0.0 -p 1234 on the host, then connect.',
-              style: TextStyle(fontSize: 10, color: OcpColors.ocpTextMuted, height: 1.4),
+              style: TextStyle(fontSize: 10, color: OcpColors.ocpDim, height: 1.4),
             ),
           ]),
           const SizedBox(height: 8),
@@ -247,7 +247,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
           _buildControlPanel('Mock Source', [
             const Text(
               'For UI testing without an RTL-SDR dongle.',
-              style: TextStyle(fontSize: 10, color: OcpColors.ocpTextMuted, height: 1.4),
+              style: TextStyle(fontSize: 10, color: OcpColors.ocpDim, height: 1.4),
             ),
             const SizedBox(height: 8),
             AnalogButton(
@@ -304,7 +304,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
           _buildControlPanel('I/Q Recording', [
             const Text(
               'Capture raw I/Q data to ~/ocp-recordings/',
-              style: TextStyle(fontSize: 10, color: OcpColors.ocpTextMuted, height: 1.4),
+              style: TextStyle(fontSize: 10, color: OcpColors.ocpDim, height: 1.4),
             ),
             const SizedBox(height: 8),
             SizedBox(
@@ -364,7 +364,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
               fontSize: 10,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.2,
-              color: OcpColors.ocpTextMuted,
+              color: OcpColors.ocpDim,
             ),
           ),
           const SizedBox(height: 8),
@@ -380,7 +380,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpTextMuted),
+          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpDim),
         ),
         const SizedBox(height: 4),
         TextField(
@@ -401,7 +401,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(4),
-              borderSide: const BorderSide(color: OcpColors.ocpAccent),
+              borderSide: const BorderSide(color: OcpColors.ocpBright),
             ),
           ),
         ),
@@ -440,9 +440,9 @@ class _SpectrumPageState extends State<SpectrumPage> {
             width: 36,
             height: 20,
             decoration: BoxDecoration(
-              color: value ? OcpColors.ocpAccent : OcpColors.ocpPanel2,
+              color: value ? OcpColors.ocpGreen : OcpColors.ocpPanel2,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: value ? OcpColors.ocpAccent : OcpColors.ocpBorder),
+              border: Border.all(color: value ? OcpColors.ocpGreen : OcpColors.ocpBorder),
             ),
             child: AnimatedAlign(
               duration: const Duration(milliseconds: 150),
@@ -452,7 +452,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
                 height: 14,
                 margin: const EdgeInsets.symmetric(horizontal: 3),
                 decoration: BoxDecoration(
-                  color: value ? OcpColors.ocpBg : OcpColors.ocpTextMuted,
+                  color: value ? OcpColors.ocpBg : OcpColors.ocpDim,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -469,7 +469,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 11, fontFamily: 'JetBrainsMono', color: OcpColors.ocpTextMuted)),
+          Text(label, style: const TextStyle(fontSize: 11, fontFamily: 'JetBrainsMono', color: OcpColors.ocpDim)),
           Text(value, style: const TextStyle(fontSize: 11, fontFamily: 'JetBrainsMono', color: OcpColors.ocpCyan)),
         ],
       ),
@@ -493,7 +493,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
             children: [
               const Text(
                 'BOOKMARKS',
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpTextMuted),
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpDim),
               ),
               GestureDetector(
                 onTap: () => setState(() {
@@ -506,7 +506,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
                 }),
                 child: const Text(
                   '+ Add',
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: OcpColors.ocpAccent),
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: OcpColors.ocpBright),
                 ),
               ),
             ],
@@ -535,7 +535,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () => setState(() => _showBookmarkForm = false),
-                  child: const Text('Cancel', style: TextStyle(fontSize: 11, color: OcpColors.ocpTextMuted)),
+                  child: const Text('Cancel', style: TextStyle(fontSize: 11, color: OcpColors.ocpDim)),
                 ),
               ],
             ),
@@ -543,7 +543,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
           ],
           // Bookmark list
           if (spectrum.bookmarks.isEmpty)
-            const Text('No bookmarks yet', style: TextStyle(fontSize: 10, color: OcpColors.ocpTextMuted))
+            const Text('No bookmarks yet', style: TextStyle(fontSize: 10, color: OcpColors.ocpDim))
           else
             ...spectrum.bookmarks.asMap().entries.map((entry) {
               final i = entry.key;
@@ -556,7 +556,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
                       onTap: () => _handleTuneToBookmark(bm, spectrum),
                       child: Text(
                         bm.label,
-                        style: const TextStyle(fontSize: 11, color: OcpColors.ocpAccent),
+                        style: const TextStyle(fontSize: 11, color: OcpColors.ocpBright),
                       ),
                     ),
                     const Spacer(),
@@ -567,7 +567,7 @@ class _SpectrumPageState extends State<SpectrumPage> {
                     const SizedBox(width: 8),
                     Text(
                       bm.modulation,
-                      style: const TextStyle(fontSize: 10, fontFamily: 'JetBrainsMono', color: OcpColors.ocpTextMuted),
+                      style: const TextStyle(fontSize: 10, fontFamily: 'JetBrainsMono', color: OcpColors.ocpDim),
                     ),
                     const SizedBox(width: 4),
                     GestureDetector(
@@ -702,7 +702,7 @@ class SpectrumPainter extends CustomPainter {
     if (data.isEmpty) {
       // Draw "no data" text
       final textPainter = TextPainter(
-        text: const TextSpan(text: 'No source', style: TextStyle(color: OcpColors.ocpTextMuted, fontSize: 14, fontFamily: 'JetBrainsMono')),
+        text: const TextSpan(text: 'No source', style: TextStyle(color: OcpColors.ocpDim, fontSize: 14, fontFamily: 'JetBrainsMono')),
         textDirection: TextDirection.ltr,
       );
       textPainter.layout();
@@ -748,7 +748,7 @@ class SpectrumPainter extends CustomPainter {
     fillPath.close();
 
     final fillPaint = Paint()
-      ..color = OcpColors.ocpAccent.withAlpha(26)
+      ..color = OcpColors.ocpBright.withAlpha(26)
       ..style = PaintingStyle.fill;
     canvas.drawPath(fillPath, fillPaint);
 
@@ -766,7 +766,7 @@ class SpectrumPainter extends CustomPainter {
     }
 
     final linePaint = Paint()
-      ..color = OcpColors.ocpAccent
+      ..color = OcpColors.ocpGreen
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
     canvas.drawPath(linePath, linePaint);
@@ -798,8 +798,8 @@ class SpectrumPainter extends CustomPainter {
     }
 
     // Frequency labels at bottom
-    final _labelPaint = Paint()..color = OcpColors.ocpTextMuted.withAlpha(128);
-    final freqTextStyle = TextStyle(color: OcpColors.ocpTextMuted, fontSize: 9, fontFamily: 'JetBrainsMono');
+    final _labelPaint = Paint()..color = OcpColors.ocpDim.withAlpha(128);
+    final freqTextStyle = TextStyle(color: OcpColors.ocpDim, fontSize: 9, fontFamily: 'JetBrainsMono');
     for (int i = 0; i <= 4; i++) {
       final fraction = i / 4;
       final freq = spectrum.centerFreqHz - spectrum.sampleRate / 2 + fraction * spectrum.sampleRate;
@@ -834,7 +834,7 @@ class WaterfallPainter extends CustomPainter {
 
     if (waterfall.isEmpty) {
       final tp = TextPainter(
-        text: const TextSpan(text: 'No data', style: TextStyle(color: OcpColors.ocpTextMuted, fontSize: 12, fontFamily: 'JetBrainsMono')),
+        text: const TextSpan(text: 'No data', style: TextStyle(color: OcpColors.ocpDim, fontSize: 12, fontFamily: 'JetBrainsMono')),
         textDirection: TextDirection.ltr,
       );
       tp.layout();

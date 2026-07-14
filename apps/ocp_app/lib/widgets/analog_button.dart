@@ -38,21 +38,13 @@ class _AnalogButtonState extends State<AnalogButton> {
         duration: const Duration(milliseconds: 100),
         transform: Matrix4.translationValues(0, offset, 0),
         decoration: BoxDecoration(
-          color: OcpColors.ocpAccent,
+          color: _pressed ? OcpColors.ocpBorder2 : OcpColors.ocpPanel3,
           borderRadius: BorderRadius.circular(4),
-          boxShadow: _pressed
-              ? []
-              : [
-                  BoxShadow(
-                    color: Colors.black45,
-                    offset: const Offset(0, 2),
-                    blurRadius: 2,
-                  ),
-                ],
+          border: Border.all(color: OcpColors.ocpBorder),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: DefaultTextStyle(
-          style: const TextStyle(color: Colors.black),
+          style: const TextStyle(color: OcpColors.ocpText),
           child: widget.child,
         ),
       ),

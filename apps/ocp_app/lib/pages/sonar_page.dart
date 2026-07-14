@@ -59,7 +59,7 @@ class SonarPage extends StatelessWidget {
         style: const TextStyle(
           fontFamily: 'JetBrainsMono',
           fontSize: 12,
-          color: OcpColors.ocpAccent,
+          color: OcpColors.ocpBright,
         ),
       ),
     );

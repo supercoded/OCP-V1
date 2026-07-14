@@ -103,7 +103,7 @@ class _MessagingPageState extends State<MessagingPage> {
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.5,
-                color: OcpColors.ocpAccent,
+                color: OcpColors.ocpBright,
               ),
             ),
           ),
@@ -126,7 +126,7 @@ class _MessagingPageState extends State<MessagingPage> {
                       border: Border(
                         bottom: const BorderSide(color: OcpColors.ocpBorder, width: 0.5),
                         left: isActive
-                            ? const BorderSide(color: OcpColors.ocpAccent, width: 2)
+                            ? const BorderSide(color: OcpColors.ocpBright, width: 2)
                             : BorderSide.none,
                       ),
                     ),
@@ -141,14 +141,14 @@ class _MessagingPageState extends State<MessagingPage> {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                                color: isActive ? OcpColors.ocpAccent : OcpColors.ocpText,
+                                color: isActive ? OcpColors.ocpBright : OcpColors.ocpText,
                               ),
                             ),
                             if (unread > 0)
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                                 decoration: BoxDecoration(
-                                  color: OcpColors.ocpAccent,
+                                  color: OcpColors.ocpBright,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
@@ -171,7 +171,7 @@ class _MessagingPageState extends State<MessagingPage> {
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 fontSize: 10,
-                                color: OcpColors.ocpTextMuted,
+                                color: OcpColors.ocpDim,
                               ),
                             ),
                           ),
@@ -197,7 +197,7 @@ class _MessagingPageState extends State<MessagingPage> {
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.2,
-                    color: OcpColors.ocpTextMuted,
+                    color: OcpColors.ocpDim,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -212,7 +212,7 @@ class _MessagingPageState extends State<MessagingPage> {
                     hintText: 'Broadcast (empty)',
                     hintStyle: TextStyle(
                       fontSize: 12,
-                      color: OcpColors.ocpTextMuted.withAlpha(128),
+                      color: OcpColors.ocpDim.withAlpha(128),
                     ),
                     filled: true,
                     fillColor: OcpColors.ocpBg,
@@ -227,7 +227,7 @@ class _MessagingPageState extends State<MessagingPage> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(4),
-                      borderSide: const BorderSide(color: OcpColors.ocpAccent),
+                      borderSide: const BorderSide(color: OcpColors.ocpBright),
                     ),
                   ),
                 ),
@@ -258,7 +258,7 @@ class _MessagingPageState extends State<MessagingPage> {
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: OcpColors.ocpAccent,
+              color: OcpColors.ocpBright,
             ),
           ),
           Row(
@@ -268,7 +268,7 @@ class _MessagingPageState extends State<MessagingPage> {
                 style: const TextStyle(
                   fontSize: 10,
                   fontFamily: 'JetBrainsMono',
-                  color: OcpColors.ocpTextMuted,
+                  color: OcpColors.ocpDim,
                 ),
               ),
               const SizedBox(width: 12),
@@ -279,7 +279,7 @@ class _MessagingPageState extends State<MessagingPage> {
                 style: TextStyle(
                   fontSize: 10,
                   fontFamily: 'JetBrainsMono',
-                  color: conn.connected ? OcpColors.ocpAccent : OcpColors.ocpRed,
+                  color: conn.connected ? OcpColors.ocpGreen : OcpColors.ocpRed,
                 ),
               ),
             ],
@@ -326,7 +326,7 @@ class _MessagingPageState extends State<MessagingPage> {
       return Center(
         child: Text(
           conn.connected ? 'No messages yet. Send one below.' : 'Connect a Meshtastic device to start messaging.',
-          style: const TextStyle(fontSize: 12, color: OcpColors.ocpTextMuted),
+          style: const TextStyle(fontSize: 12, color: OcpColors.ocpDim),
         ),
       );
     }
@@ -354,7 +354,7 @@ class _MessagingPageState extends State<MessagingPage> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: isMe ? OcpColors.ocpAccent : OcpColors.ocpPanel2,
+                      color: isMe ? OcpColors.ocpBright : OcpColors.ocpPanel2,
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(8),
                         topRight: const Radius.circular(8),
@@ -371,7 +371,7 @@ class _MessagingPageState extends State<MessagingPage> {
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
-                            color: isMe ? OcpColors.ocpBg.withAlpha(179) : OcpColors.ocpAccent,
+                            color: isMe ? OcpColors.ocpBg.withAlpha(179) : OcpColors.ocpBright,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -391,7 +391,7 @@ class _MessagingPageState extends State<MessagingPage> {
                     style: const TextStyle(
                       fontSize: 9,
                       fontFamily: 'JetBrainsMono',
-                      color: OcpColors.ocpTextMuted,
+                      color: OcpColors.ocpDim,
                     ),
                   ),
                 ],
@@ -425,7 +425,7 @@ class _MessagingPageState extends State<MessagingPage> {
                 hintText: conn.connected ? 'Type message...' : 'No device connected',
                 hintStyle: TextStyle(
                   fontSize: 13,
-                  color: OcpColors.ocpTextMuted.withAlpha(conn.connected ? 128 : 64),
+                  color: OcpColors.ocpDim.withAlpha(conn.connected ? 128 : 64),
                 ),
                 filled: true,
                 fillColor: OcpColors.ocpBg,
@@ -440,11 +440,11 @@ class _MessagingPageState extends State<MessagingPage> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: OcpColors.ocpAccent),
+                  borderSide: const BorderSide(color: OcpColors.ocpBright),
                 ),
                 disabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(4),
-                  borderSide: BorderSide(color: OcpColors.ocpBorder.withAlpha(51)),
+                  borderSide: BorderSide(color: OcpColors.ocpBorder2.withAlpha(51)),
                 ),
               ),
             ),
