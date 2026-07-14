@@ -18,7 +18,9 @@ android {
 
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
+            // Debug signing is handled automatically by the Flutter/Android plugin.
+            minifyEnabled false
+            shrinkResources false
         }
     }
 
