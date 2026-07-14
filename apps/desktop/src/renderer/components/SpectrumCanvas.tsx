@@ -20,9 +20,9 @@ export function SpectrumCanvas({
   magnitudes,
   minDb = -120,
   maxDb = -20,
-  lineColor = "#00ff9d",
-  fillColor = "rgba(0, 255, 157, 0.15)",
-  gridColor = "rgba(0, 255, 157, 0.15)",
+  lineColor = "#4fc3f7",
+  fillColor = "rgba(79, 195, 247, 0.12)",
+  gridColor = "rgba(68, 68, 68, 0.6)",
   peakHold = false,
   peakHoldMagnitudes = null,
   vfoCenter,
@@ -69,11 +69,11 @@ export function SpectrumCanvas({
       const xCenter = vfoCenter !== undefined ? (vfoCenter / (len - 1)) * width : (xLeft + xRight) / 2;
 
       // Semi-transparent VFO band
-      ctx.fillStyle = "rgba(0, 240, 160, 0.08)";
+      ctx.fillStyle = "rgba(79, 195, 247, 0.08)";
       ctx.fillRect(xLeft, 0, xRight - xLeft, height);
 
       // VFO edges
-      ctx.strokeStyle = "rgba(0, 240, 160, 0.5)";
+      ctx.strokeStyle = "rgba(79, 195, 247, 0.5)";
       ctx.lineWidth = 2;
       ctx.setLineDash([4, 4]);
       ctx.beginPath();
@@ -86,7 +86,7 @@ export function SpectrumCanvas({
       ctx.stroke();
 
       // VFO center line
-      ctx.strokeStyle = "rgba(0, 240, 160, 0.7)";
+      ctx.strokeStyle = "rgba(79, 195, 247, 0.7)";
       ctx.lineWidth = 1;
       ctx.setLineDash([2, 3]);
       ctx.beginPath();
@@ -96,7 +96,7 @@ export function SpectrumCanvas({
       ctx.setLineDash([]);
     }
 
-    // Peak-hold overlay (amber/warm ramp)
+    // Peak-hold overlay (amber status color, no glow)
     if (peakHold && peakHoldMagnitudes && peakHoldMagnitudes.length === len) {
       ctx.beginPath();
       for (let i = 0; i < len; i++) {
@@ -106,12 +106,9 @@ export function SpectrumCanvas({
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
-      ctx.strokeStyle = "#ffaa00";
+      ctx.strokeStyle = "#d4a017";
       ctx.lineWidth = 1.5;
-      ctx.shadowColor = "#ffaa00";
-      ctx.shadowBlur = 4;
       ctx.stroke();
-      ctx.shadowBlur = 0;
     }
 
     // Spectrum trace.
@@ -140,10 +137,7 @@ export function SpectrumCanvas({
     }
     ctx.strokeStyle = lineColor;
     ctx.lineWidth = 2;
-    ctx.shadowColor = lineColor;
-    ctx.shadowBlur = 6;
     ctx.stroke();
-    ctx.shadowBlur = 0;
   }, [magnitudes, minDb, maxDb, lineColor, fillColor, gridColor, peakHold, peakHoldMagnitudes, showVfo, vfoCenter, vfoLeft, vfoRight]);
 
   return <canvas ref={canvasRef} className={`w-full h-full ${className}`} />;

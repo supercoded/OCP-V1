@@ -39,5 +39,5 @@ test("RuViewClient connects and parses sensing_update frames", async () => {
   assert.equal(events[0].source, "simulated");
 
   client.stop();
-  wss.close();
+  await new Promise((resolve) => wss.close(() => resolve()));
 });

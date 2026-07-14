@@ -9,7 +9,8 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "node --test",
+    "test": "node --test --test-timeout=15000 packages/*/test/*.test.js test/*.test.js",
+    "generate:icon": "node scripts/generate-desktop-icon.cjs",
     "build:desktop": "bash scripts/build-desktop.sh",
     "build:android": "bash scripts/build-android.sh",
     "validate:field": "bash scripts/field-validation.sh",

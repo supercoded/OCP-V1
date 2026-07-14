@@ -766,7 +766,7 @@ class SpectrumPainter extends CustomPainter {
     }
 
     final linePaint = Paint()
-      ..color = OcpColors.ocpGreen
+      ..color = OcpColors.ocpCyan
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
     canvas.drawPath(linePath, linePaint);

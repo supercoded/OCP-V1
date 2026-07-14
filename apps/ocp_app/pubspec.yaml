@@ -11,6 +11,7 @@ dependencies:
     sdk: flutter
   provider: ^6.1.0
   flutter_map: ^7.0.0
+  latlong2: ^0.9.1
   shared_preferences: ^2.2.2
   ocp_flutter_core:
     path: ../../packages/ocp_flutter_core

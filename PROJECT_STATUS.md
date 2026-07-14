@@ -87,7 +87,7 @@
 ## Architecture decisions
 
 1. **Desktop UI:** Electron + React + Tailwind + Radix UI. Flutter for cross-platform/iOS.
-2. **UI aesthetic:** Submarine CIC/sonar room — dark slate, green/amber phosphor, CRT scanlines.
+2. **UI aesthetic:** Gray/black INDI/ATA operator console. Status colors (green/amber/red/cyan) for indicators only — no CRT scanlines or phosphor glow.
 3. **Centerpiece:** Sonar PPI signal mapper.
 4. **Flutter bridges:** Desktop uses WebSocket to Node.js bridge; mobile uses MethodChannel to native.
 5. **Offline maps:** MapLibre GL JS (desktop) + PMTiles server; flutter_map planned for mobile.
@@ -98,11 +98,12 @@
 ## Test status
 
 ```
-# tests 26
-# pass 26
+# tests 71
+# pass 71
 # fail 0
 ```
 
+Note: MeshtasticCodec still logs `root.loadSync is not a function` under protobufjs v8 (instantiation tests still pass). Wire-up of proto loading needs a follow-up for real encode/decode.
 ## UI Theme
 - **Electron + Flutter both on gray/black INDI/ATA palette** (as of 2026-07-14)
 - Palette: bg=#111111, panel=#1a1a1a, text=#c8c8c8, bright=#e8e8e8, dim=#888888, muted=#666666
@@ -113,14 +114,23 @@
 - Desktop app cannot be visually verified on headless Pi; needs display.
 - RuView requires Docker simulator or real ESP32-S3/C6 hardware.
 - RTL-SDR requires external `rtl_tcp` binary.
-- Windows icon not yet generated (uses Electron default).
-- Flutter app not yet compiled/verified (no Flutter SDK on Pi).
+- Windows icon not yet converted to `.ico` (PNG generated via `npm run generate:icon`; electron-builder can use PNG on some targets).
+- Flutter app not yet compiled/verified (install Flutter SDK on this machine).
 
 ## Pending / Next priorities
-1. Flutter SDK install and build verification (`flutter build linux`, `flutter build apk`)
+1. Flutter SDK install and build verification (`flutter build windows`, `flutter build apk`)
 2. Windows .ico + installer test on actual Windows
 3. Flutter mobile platform configs (iOS/Android permissions, navigation)
-4. Integration testing with real hardware
+4. Integration testing with real hardware (RuView, Meshtastic, RTL-SDR)
+5. Flutter offline raster tile pack (PMTiles/MVT remains desktop MapLibre-only)
+
+## Recent corrections (2026-07-14)
+- Finished INDI/ATA theme migration leftovers (spectrum canvas, map markers, offline map style)
+- Desktop MapCanvas: removed sensing pulse animation; map control colors use INDI palette (#111111 scale bar, neutral invert on nav buttons)
+- Flutter MapPage: `flutter_map` + CARTO dark tiles; RuView sensing markers wired via `ConnectionProvider.ruViewSensing` with desktop-matching x/y→lat/lon projection; offline toggle dims tiles + snackbar (no fake localhost PMTiles)
+- Flutter Baofeng channel editor (offline CSV, tone RX/TX dropdowns) replaces "coming soon" stub
+- Android: removed BLUETOOTH_ADVERTISE; added `usesCleartextTraffic`; BLE/location/USB host permissions
+- Desktop `icon.png` generator: `npm run generate:icon` (`scripts/generate-desktop-icon.cjs`)
 
 ## Blockers
 - None.
