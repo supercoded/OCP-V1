@@ -7,13 +7,17 @@ class OcpTheme {
     scaffoldBackgroundColor: OcpColors.ocpBg,
     canvasColor: OcpColors.ocpPanel,
     primaryColor: OcpColors.ocpAccent,
-    accentColor: OcpColors.ocpAccent,
+    colorScheme: const ColorScheme.dark(
+      primary: OcpColors.ocpAccent,
+      secondary: OcpColors.ocpAccent,
+      surface: OcpColors.ocpPanel,
+    ),
     fontFamily: 'monospace',
     appBarTheme: const AppBarTheme(
       backgroundColor: OcpColors.ocpPanel2,
       foregroundColor: OcpColors.ocpText,
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: OcpColors.ocpPanel2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
