@@ -142,16 +142,32 @@ jobs:
           chmod +x ./gradlew
           ./gradlew :app:assembleRelease --stacktrace --info --no-daemon --no-build-cache || true
 
+      - name: Copy Gradle APK to expected path
+        if: steps.flutter_build_apk.outcome == 'failure'
+        working-directory: apps/ocp_app
+        run: |
+          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            mkdir -p build/app/outputs/flutter-apk
+            cp android/app/build/outputs/apk/release/app-release.apk build/app/outputs/flutter-apk/app-release.apk
+            echo "Copied Gradle APK to build/app/outputs/flutter-apk/"
+          else
+            echo "No Gradle APK found to copy"
+          fi
+
       - name: Debug build output
         if: always()
         working-directory: apps/ocp_app
         run: |
-          echo '--- APK/AAB files ---'
-          find build -type f \( -name '*.apk' -o -name '*.aab' \) 2>/dev/null || echo 'No APK/AAB found'
+          echo '--- APK/AAB files under apps/ocp_app/build ---'
+          find build -type f \( -name '*.apk' -o -name '*.aab' \) 2>/dev/null || echo 'No APK/AAB found under build'
+          echo '--- APK/AAB files under apps/ocp_app/android/app/build ---'
+          find android/app/build -type f \( -name '*.apk' -o -name '*.aab' \) 2>/dev/null || echo 'No APK/AAB found under android/app/build'
           echo '--- outputs dir ---'
           ls -laR build/app/outputs/ 2>/dev/null || echo 'No outputs dir'
           echo '--- flutter-apk dir ---'
           ls -la build/app/outputs/flutter-apk/ 2>/dev/null || echo 'No flutter-apk dir'
+          echo '--- android outputs dir ---'
+          ls -laR android/app/build/outputs/ 2>/dev/null || echo 'No android outputs dir'
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -161,9 +177,15 @@ jobs:
             apps/ocp_app/build/app/outputs/flutter-apk/*.apk
             apps/ocp_app/build/app/outputs/apk/release/*.apk
 
-      - name: Fail if both Flutter and Gradle builds failed
-        if: steps.flutter_build_apk.outcome == 'failure'
-        run: exit 1
+      - name: Fail if no APK produced
+        if: always()
+        working-directory: apps/ocp_app
+        run: |
+          if [ ! -f build/app/outputs/flutter-apk/app-release.apk ] && [ ! -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            echo "No release APK found"
+            exit 1
+          fi
+          echo "Release APK found"
 
   release:
     name: Create Release
