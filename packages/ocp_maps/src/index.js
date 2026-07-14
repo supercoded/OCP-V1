@@ -1,8 +1,6 @@
 import http from 'http';
 import fs from 'fs';
-import pmtiles from 'pmtiles';
-
-const { PMTiles } = pmtiles;
+import { PMTiles } from 'pmtiles';
 
 class FileSource {
   constructor(path) {

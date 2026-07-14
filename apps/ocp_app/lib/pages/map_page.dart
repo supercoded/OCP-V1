@@ -112,14 +112,16 @@ class _MapPageState extends State<MapPage> {
                         },
                       ),
                       children: [
-                        TileLayer(
-                          // flutter_map renders raster tiles. Offline PMTiles/MVT is desktop MapLibre.
-                          // Offline toggle dims attribution and keeps CARTO dark until a raster pack ships.
-                          urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
-                          subdomains: const ['a', 'b', 'c'],
-                          userAgentPackageName: 'com.ocp.ocp_v1',
-                          tileProvider: NetworkTileProvider(),
+                        Opacity(
                           opacity: _showOfflineTiles ? 0.55 : 1.0,
+                          child: TileLayer(
+                            // flutter_map renders raster tiles. Offline PMTiles/MVT is desktop MapLibre.
+                            // Offline toggle dims attribution and keeps CARTO dark until a raster pack ships.
+                            urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
+                            subdomains: const ['a', 'b', 'c'],
+                            userAgentPackageName: 'com.ocp.ocp_v1',
+                            tileProvider: NetworkTileProvider(),
+                          ),
                         ),
                         if (_showNodes)
                           MarkerLayer(
