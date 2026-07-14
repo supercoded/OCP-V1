@@ -128,11 +128,11 @@ class NetworkPage extends StatelessWidget {
                 ),
                 SizedBox(
                   width: 70,
-                  child: Text('SNR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpTextMuted, textAlign: TextAlign.right)),
+                  child: Text('SNR', textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpTextMuted)),
                 ),
                 SizedBox(
                   width: 90,
-                  child: Text('LAST HEARD', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpTextMuted, textAlign: TextAlign.right)),
+                  child: Text('LAST HEARD', textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: OcpColors.ocpTextMuted)),
                 ),
               ],
             ),

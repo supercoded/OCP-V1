@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ocp_flutter_core/theme/ocp_colors.dart';
-import 'package:ocp_flutter_core/theme/ocp_text_styles.dart';
 import '../providers/messaging_provider.dart';
 import '../providers/connection_provider.dart';
 import '../providers/network_provider.dart';

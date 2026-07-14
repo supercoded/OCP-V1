@@ -1,7 +1,7 @@
 import 'dart:convert';
+export 'package:ocp_flutter_core/ocp_flutter_core.dart' show StorageService, StorageKeys;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:ocp_flutter_core/ocp_flutter_core.dart' show StorageService, StorageKeys;
 
 /// Concrete implementation of [StorageService] using SharedPreferences.
 ///
@@ -100,6 +100,3 @@ class LocalStorageService implements StorageService {
     }
   }
 }
-
-// Re-export StorageKeys for convenience
-export 'package:ocp_flutter_core/services/storage_service.dart' show StorageKeys;

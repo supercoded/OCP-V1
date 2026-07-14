@@ -36,7 +36,7 @@ class SidebarNavigation extends StatelessWidget {
             onTap: () => onTap(index),
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 12),
-              color: isActive ? OcpColors.ocpAccent.withOpacity(0.2) : Colors.transparent,
+              color: isActive ? OcpColors.ocpAccent.withValues(alpha: 0.2) : Colors.transparent,
               child: Column(
                 children: [
                   Icon(item.icon, color: isActive ? OcpColors.ocpAccent : OcpColors.ocpTextMuted),

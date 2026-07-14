@@ -98,7 +98,7 @@ class _SonarPainter extends CustomPainter {
 
     // Range rings
     final ringPaint = Paint()
-      ..color = OcpColors.ocpBorder.withOpacity(0.5)
+      ..color = OcpColors.ocpBorder.withValues(alpha: 0.5)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
@@ -108,7 +108,7 @@ class _SonarPainter extends CustomPainter {
 
     // Bearing lines (every 30°)
     final bearingPaint = Paint()
-      ..color = OcpColors.ocpBorder.withOpacity(0.3)
+      ..color = OcpColors.ocpBorder.withValues(alpha: 0.3)
       ..strokeWidth = 1;
 
     const labels = ['N', '30', '60', 'E', '120', '150', 'S', '210', '240', 'W', '300', '330'];
@@ -159,7 +159,7 @@ class _SonarPainter extends CustomPainter {
         center,
         Offset(endX, endY),
         Paint()
-          ..color = OcpColors.ocpAccent.withOpacity(alpha)
+          ..color = OcpColors.ocpAccent.withValues(alpha: alpha)
           ..strokeWidth = 1,
       );
     }
@@ -182,7 +182,7 @@ class _SonarPainter extends CustomPainter {
           ..color = (blip.isHighlighted
                   ? OcpColors.ocpAmber
                   : OcpColors.ocpAccent)
-              .withOpacity(opacity * 0.3),
+              .withValues(alpha: opacity * 0.3),
       );
 
       // Dot
@@ -193,7 +193,7 @@ class _SonarPainter extends CustomPainter {
           ..color = (blip.isHighlighted
                   ? OcpColors.ocpAmber
                   : OcpColors.ocpAccent)
-              .withOpacity(opacity),
+              .withValues(alpha: opacity),
       );
 
       // Label
@@ -202,7 +202,7 @@ class _SonarPainter extends CustomPainter {
           text: TextSpan(
             text: blip.label,
             style: TextStyle(
-              color: OcpColors.ocpText.withOpacity(opacity),
+              color: OcpColors.ocpText.withValues(alpha: opacity),
               fontSize: 10,
               fontFamily: 'JetBrainsMono',
             ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:ocp_flutter_core/theme/ocp_colors.dart';
-import '../providers/connection_provider.dart';
 import '../widgets/sidebar_navigation.dart';
 import '../pages/sonar_page.dart';
 import '../pages/messaging_page.dart';
