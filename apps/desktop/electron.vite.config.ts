@@ -7,7 +7,16 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     build: {
       rollupOptions: {
-        external: ["serialport", "@abandonware/noble", "ws", "kissfft-js", "@ocp/bridge-baofeng"],
+        external: [
+          "serialport",
+          "@abandonware/noble",
+          "ws",
+          "kissfft-js",
+          "@ocp/bridge-baofeng",
+          "@ocp/bridge-meshtastic",
+          "@ocp/plugin-api",
+          "@ocp/plugin-example",
+        ],
       },
       lib: {
         entry: resolve("src/main.ts"),

@@ -32,9 +32,9 @@
 - Architecture changes require spec updates.
 
 ## Current status
-- Phases 0–6 complete on Electron desktop + Flutter scaffold through persistence.
-- UI theme: gray/black INDI/ATA operator console (2026-07-14).
-- Next: Flutter build verification on Windows, hardware integration, plugin/security phases.
+- Phases 0–8 complete on Electron desktop + Flutter scaffold through persistence.
+- Phase 8 security: PIN vault, encrypted offline DB, CRC-32 helpers, NetworkState replay window, LockScreen.
+- Next: Phase 9 performance & cross-platform QA, Flutter build verification / hardware smoke.
 
 ## Key files
 | File | Purpose |

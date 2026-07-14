@@ -1,12 +1,56 @@
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "node:crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHmac,
+  randomBytes,
+  scryptSync,
+  timingSafeEqual,
+} from "node:crypto";
+
+const DEFAULT_SALT = "ocp-offline-salt";
+const SCRYPT_OPTS = { N: 16384, r: 8, p: 1 };
+const KEY_LEN = 32;
 
 /**
- * Minimal key encryption helper for channel secrets at rest.
- * In production, wrap this with OS keystore/keychain integration.
+ * AES-256-GCM helper for secrets and full-file DB encryption at rest.
+ * Prefer a random salt from PinVault in production; fixed string salt is
+ * kept for backward compatibility with older callers/tests.
  */
 export class LocalKeyCipher {
-  constructor(passphrase) {
-    this.key = scryptSync(passphrase, "ocp-offline-salt", 32);
+  /**
+   * @param {string} passphrase
+   * @param {string|Buffer} [salt]
+   */
+  constructor(passphrase, salt = DEFAULT_SALT) {
+    const saltBuf = Buffer.isBuffer(salt) ? salt : Buffer.from(String(salt), "utf8");
+    this.salt = saltBuf;
+    this.key = scryptSync(passphrase, saltBuf, KEY_LEN, SCRYPT_OPTS);
+  }
+
+  /** Build a cipher from an already-derived 32-byte key. */
+  static fromKey(key) {
+    const cipher = Object.create(LocalKeyCipher.prototype);
+    cipher.key = Buffer.from(key);
+    cipher.salt = null;
+    return cipher;
+  }
+
+  /** Derive a 32-byte key (same KDF as constructor). */
+  static deriveKey(passphrase, salt) {
+    const saltBuf = Buffer.isBuffer(salt) ? salt : Buffer.from(String(salt), "utf8");
+    return scryptSync(passphrase, saltBuf, KEY_LEN, SCRYPT_OPTS);
+  }
+
+  /** HMAC verifier bytes for a derived key (PIN check without storing the PIN). */
+  static makeVerifier(key) {
+    return createHmac("sha256", key).update("ocp-v1-pin-verifier").digest();
+  }
+
+  static verifyKey(key, verifier) {
+    const expected = LocalKeyCipher.makeVerifier(key);
+    const actual = Buffer.isBuffer(verifier) ? verifier : Buffer.from(verifier);
+    if (expected.length !== actual.length) return false;
+    return timingSafeEqual(expected, actual);
   }
 
   encrypt(plaintext) {

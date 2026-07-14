@@ -1,0 +1,16 @@
+{
+  "name": "@ocp/plugin-example",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@ocp/plugin-api": "^0.1.0"
+  },
+  "description": "Example OCP diagnostics status.provider plugin (Phase 7 contract validation)."
+}

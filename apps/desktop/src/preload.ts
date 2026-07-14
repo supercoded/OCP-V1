@@ -92,6 +92,21 @@ const ocpAPI = {
     return () => ipcRenderer.off("ocp:message:received", listener);
   },
   getMessageHistory: () => ipcRenderer.invoke("ocp:message:getHistory"),
+
+  // Plugins (Phase 7)
+  listPlugins: () => ipcRenderer.invoke("ocp:plugins:list"),
+  activatePlugin: (id: string) => ipcRenderer.invoke("ocp:plugins:activate", id),
+  deactivatePlugin: (id: string) => ipcRenderer.invoke("ocp:plugins:deactivate", id),
+  getPluginStatus: () => ipcRenderer.invoke("ocp:plugins:status"),
+
+  // Security (Phase 8)
+  securityStatus: () => ipcRenderer.invoke("ocp:security:status"),
+  setPin: (pin: string) => ipcRenderer.invoke("ocp:security:setPin", pin),
+  unlock: (pin: string) => ipcRenderer.invoke("ocp:security:unlock", pin),
+  lock: () => ipcRenderer.invoke("ocp:security:lock"),
+  changePin: (params: { currentPin: string; newPin: string }) =>
+    ipcRenderer.invoke("ocp:security:changePin", params),
+  clearPin: (pin: string) => ipcRenderer.invoke("ocp:security:clearPin", pin),
 };
 
 contextBridge.exposeInMainWorld("ocp", ocpAPI);

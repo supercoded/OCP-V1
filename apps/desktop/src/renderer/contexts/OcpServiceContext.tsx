@@ -10,6 +10,8 @@ import {
 export interface OcpState {
   connected: boolean;
   transportKind?: string;
+  transportEndpoint?: string;
+  localNodeId?: number;
   nodeCount: number;
   nodes: any[];
   ruViewConnected: boolean;
@@ -21,6 +23,20 @@ export interface OcpState {
   mapPort?: number;
   baofengConnected: boolean;
   baofengPortName?: string;
+  plugins?: Array<{
+    id: string;
+    name: string;
+    version: string;
+    description?: string;
+    active: boolean;
+    permissions: string[];
+    capabilities: string[];
+    declaredCapabilities?: string[];
+  }>;
+  security?: {
+    pinConfigured: boolean;
+    unlocked: boolean;
+  };
 }
 
 export interface RuViewSensing {
@@ -79,6 +95,19 @@ interface OcpServiceAPI {
   baofengDisconnect: () => Promise<{ ok: boolean }>;
   baofengReadChannels: () => Promise<{ ok: boolean; channels?: any[]; error?: string }>;
   baofengWriteChannels: (channels: any[]) => Promise<{ ok: boolean; error?: string }>;
+
+  // Plugins
+  activatePlugin: (id: string) => Promise<{ ok: boolean; error?: string }>;
+  deactivatePlugin: (id: string) => Promise<{ ok: boolean; error?: string }>;
+  getPluginStatus: () => Promise<{ ok: boolean; statuses?: any[]; error?: string }>;
+  pluginStatuses: any[];
+
+  // Security
+  setPin: (pin: string) => Promise<{ ok: boolean; error?: string }>;
+  unlock: (pin: string) => Promise<{ ok: boolean; error?: string }>;
+  lock: () => Promise<{ ok: boolean; error?: string }>;
+  changePin: (params: { currentPin: string; newPin: string }) => Promise<{ ok: boolean; error?: string }>;
+  clearPin: (pin: string) => Promise<{ ok: boolean; error?: string }>;
 }
 
 const OcpServiceContext = createContext<OcpServiceAPI | null>(null);
@@ -304,6 +333,66 @@ export function OcpServiceProvider({ children }: { children: ReactNode }) {
     return await api.baofengWriteChannels(channels);
   }, []);
 
+  const [pluginStatuses, setPluginStatuses] = useState<any[]>([]);
+
+  const refreshPluginStatus = useCallback(async () => {
+    const api = (window as any).ocp;
+    if (!api?.getPluginStatus) return { ok: false };
+    const result = await api.getPluginStatus();
+    if (result?.ok && result.statuses) setPluginStatuses(result.statuses);
+    return result;
+  }, []);
+
+  const activatePlugin = useCallback(async (id: string) => {
+    const api = (window as any).ocp;
+    if (!api) return { ok: false, error: "OCP API not available" };
+    const result = await api.activatePlugin(id);
+    if (result.ok) await refreshPluginStatus();
+    return result;
+  }, [refreshPluginStatus]);
+
+  const deactivatePlugin = useCallback(async (id: string) => {
+    const api = (window as any).ocp;
+    if (!api) return { ok: false, error: "OCP API not available" };
+    const result = await api.deactivatePlugin(id);
+    if (result.ok) await refreshPluginStatus();
+    return result;
+  }, [refreshPluginStatus]);
+
+  useEffect(() => {
+    void refreshPluginStatus();
+  }, [refreshPluginStatus, state.plugins]);
+
+  const setPin = useCallback(async (pin: string) => {
+    const api = (window as any).ocp;
+    if (!api) return { ok: false, error: "OCP API not available" };
+    return await api.setPin(pin);
+  }, []);
+
+  const unlock = useCallback(async (pin: string) => {
+    const api = (window as any).ocp;
+    if (!api) return { ok: false, error: "OCP API not available" };
+    return await api.unlock(pin);
+  }, []);
+
+  const lock = useCallback(async () => {
+    const api = (window as any).ocp;
+    if (!api) return { ok: false, error: "OCP API not available" };
+    return await api.lock();
+  }, []);
+
+  const changePin = useCallback(async (params: { currentPin: string; newPin: string }) => {
+    const api = (window as any).ocp;
+    if (!api) return { ok: false, error: "OCP API not available" };
+    return await api.changePin(params);
+  }, []);
+
+  const clearPin = useCallback(async (pin: string) => {
+    const api = (window as any).ocp;
+    if (!api) return { ok: false, error: "OCP API not available" };
+    return await api.clearPin(pin);
+  }, []);
+
   return (
     <OcpServiceContext.Provider
       value={{
@@ -340,6 +429,17 @@ export function OcpServiceProvider({ children }: { children: ReactNode }) {
       baofengDisconnect,
       baofengReadChannels,
       baofengWriteChannels,
+      // Plugins
+      activatePlugin,
+      deactivatePlugin,
+      getPluginStatus: refreshPluginStatus,
+      pluginStatuses,
+      // Security
+      setPin,
+      unlock,
+      lock,
+      changePin,
+      clearPin,
     }}
     >
       {children}

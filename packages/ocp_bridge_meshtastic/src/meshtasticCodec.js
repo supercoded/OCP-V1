@@ -1,49 +1,58 @@
 import protobufjs from "protobufjs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-
-const { loadSync } = protobufjs;
-
-// Resolve the path to the protobuf files. First try a package-installed location,
-// then fall back to the repository's protobufs/ directory.
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 import { existsSync } from "node:fs";
 
-const PROTOBUF_PATH = (() => {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+/** Parent of the `meshtastic/` folder — protos import as `meshtastic/*.proto`. */
+const PROTOBUF_ROOT = (() => {
   const candidates = [
-    resolve(__dirname, "../../node_modules/meshtastic-protobufs/proto/meshtastic"),
-    resolve(__dirname, "../../../../protobufs/meshtastic"),
+    resolve(__dirname, "../../../node_modules/meshtastic-protobufs/proto"),
+    resolve(__dirname, "../../../protobufs"),
   ];
   for (const candidate of candidates) {
-    if (existsSync(resolve(candidate, "mesh.proto"))) {
+    if (existsSync(resolve(candidate, "meshtastic", "mesh.proto"))) {
       return candidate;
     }
   }
   return candidates[candidates.length - 1];
 })();
 
+const PROTO_FILES = [
+  "meshtastic/mesh.proto",
+  "meshtastic/portnums.proto",
+  "meshtastic/channel.proto",
+  "meshtastic/config.proto",
+  "meshtastic/device_ui.proto",
+  "meshtastic/module_config.proto",
+  "meshtastic/telemetry.proto",
+  "meshtastic/xmodem.proto",
+  "meshtastic/serial_hal.proto",
+];
+
+function isTextPortnum(portnum) {
+  return portnum === "TEXT_MESSAGE_APP" || portnum === 1;
+}
+
 /**
- * Codec for translating between Meshtastic protobufs and OCP protocol
+ * Codec for translating between Meshtastic protobufs and OCP protocol.
+ * Requires protobufjs v7 (Root.loadSync). Fails hard if protos cannot load.
  */
 export class MeshtasticCodec {
   constructor() {
-    try {
-      this.root = loadSync(
-        [
-          resolve(PROTOBUF_PATH, "mesh.proto"),
-          resolve(PROTOBUF_PATH, "portnums.proto"),
-          resolve(PROTOBUF_PATH, "channel.proto"),
-          resolve(PROTOBUF_PATH, "config.proto"),
-          resolve(PROTOBUF_PATH, "device_ui.proto"),
-          resolve(PROTOBUF_PATH, "module_config.proto"),
-          resolve(PROTOBUF_PATH, "telemetry.proto"),
-          resolve(PROTOBUF_PATH, "xmodem.proto"),
-          resolve(PROTOBUF_PATH, "serial_hal.proto"),
-        ],
-        { keepCase: true }
+    if (typeof protobufjs?.Root !== "function") {
+      throw new Error(
+        "protobufjs Root unavailable — pin protobufjs@7 for @ocp/bridge-meshtastic"
       );
-      // Get the key message types
+    }
+
+    try {
+      // Module-level loadSync(filename, options) treats `options` as a Root — use Root#loadSync.
+      const root = new protobufjs.Root();
+      root.resolvePath = (_origin, target) => resolve(PROTOBUF_ROOT, target);
+      this.root = root.loadSync(PROTO_FILES);
       this.MeshPacket = this.root.lookupType("meshtastic.MeshPacket");
       this.FromRadio = this.root.lookupType("meshtastic.FromRadio");
       this.ToRadio = this.root.lookupType("meshtastic.ToRadio");
@@ -51,28 +60,11 @@ export class MeshtasticCodec {
       this.Position = this.root.lookupType("meshtastic.Position");
       this.User = this.root.lookupType("meshtastic.User");
     } catch (error) {
-      console.error("Failed to load protobuf definitions:", error.message);
-      // Don't throw the error, just log it - we'll handle it gracefully
-      this.MeshPacket = null;
-      this.FromRadio = null;
-      this.ToRadio = null;
-      this.Data = null;
-      this.Position = null;
-      this.User = null;
+      throw new Error(`Failed to load Meshtastic protobuf definitions: ${error.message}`);
     }
   }
 
-  /**
-   * Decode a Meshtastic FromRadio message to OCP format
-   * @param {Buffer} buffer - Raw protobuf buffer
-   * @returns {Object} OCP-compatible message
-   */
   decodeFromRadio(buffer) {
-    // If protobufs failed to load, return a basic structure
-    if (!this.FromRadio) {
-      return { error: "Protobuf definitions not loaded" };
-    }
-    
     try {
       const message = this.FromRadio.decode(buffer);
       return this.#convertFromRadioMessage(message);
@@ -81,67 +73,51 @@ export class MeshtasticCodec {
     }
   }
 
-  /**
-   * Encode an OCP message to Meshtastic ToRadio format
-   * @param {Object} ocpMessage - OCP message format
-   * @returns {Buffer} Encoded protobuf buffer
-   */
   encodeToRadio(ocpMessage) {
-    // If protobufs failed to load, return empty buffer
-    if (!this.ToRadio) {
-      return Buffer.alloc(0);
-    }
-    
     try {
       const meshtasticMessage = this.#convertToRadioMessage(ocpMessage);
-      return this.ToRadio.encode(meshtasticMessage).finish();
+      const err = this.ToRadio.verify(meshtasticMessage);
+      if (err) throw new Error(err);
+      return Buffer.from(this.ToRadio.encode(this.ToRadio.create(meshtasticMessage)).finish());
     } catch (error) {
       throw new Error(`Failed to encode ToRadio: ${error.message}`);
     }
   }
 
-  /**
-   * Convert Meshtastic FromRadio to OCP format
-   * @private
-   */
   #convertFromRadioMessage(fromRadio) {
     const result = {};
 
-    if (fromRadio.hasOwnProperty("packet")) {
+    if (Object.prototype.hasOwnProperty.call(fromRadio, "packet") && fromRadio.packet) {
       result.packet = this.#convertMeshPacket(fromRadio.packet);
     }
 
-    if (fromRadio.hasOwnProperty("myInfo")) {
+    if (Object.prototype.hasOwnProperty.call(fromRadio, "myInfo") && fromRadio.myInfo) {
       result.myInfo = {
         myNodeNum: fromRadio.myInfo.myNodeNum,
         firmwareVersion: fromRadio.myInfo.firmwareVersion,
-        rebootCount: fromRadio.myInfo.rebootCount
+        rebootCount: fromRadio.myInfo.rebootCount,
       };
     }
 
-    if (fromRadio.hasOwnProperty("nodeInfo")) {
+    if (Object.prototype.hasOwnProperty.call(fromRadio, "nodeInfo") && fromRadio.nodeInfo) {
       result.nodeInfo = this.#convertNodeInfo(fromRadio.nodeInfo);
     }
 
-    if (fromRadio.hasOwnProperty("config")) {
+    if (Object.prototype.hasOwnProperty.call(fromRadio, "config") && fromRadio.config) {
       result.config = fromRadio.config;
     }
 
-    if (fromRadio.hasOwnProperty("channel")) {
+    if (Object.prototype.hasOwnProperty.call(fromRadio, "channel") && fromRadio.channel) {
       result.channel = fromRadio.channel;
     }
 
-    if (fromRadio.hasOwnProperty("ackId")) {
+    if (Object.prototype.hasOwnProperty.call(fromRadio, "ackId") && fromRadio.ackId != null) {
       result.ackId = fromRadio.ackId;
     }
 
     return result;
   }
 
-  /**
-   * Convert OCP message to Meshtastic ToRadio format
-   * @private
-   */
   #convertToRadioMessage(ocpMessage) {
     const toRadio = {};
 
@@ -149,8 +125,8 @@ export class MeshtasticCodec {
       toRadio.packet = this.#convertToMeshPacket(ocpMessage.packet);
     }
 
-    if (ocpMessage.wantConfigId) {
-      toRadio.wantConfigId = ocpMessage.wantConfigId;
+    if (ocpMessage.wantConfigId != null) {
+      toRadio.wantConfigId = Number(ocpMessage.wantConfigId) >>> 0;
     }
 
     if (ocpMessage.disconnect !== undefined) {
@@ -160,10 +136,6 @@ export class MeshtasticCodec {
     return toRadio;
   }
 
-  /**
-   * Convert Meshtastic MeshPacket to OCP format
-   * @private
-   */
   #convertMeshPacket(packet) {
     const result = {
       from: packet.from,
@@ -171,103 +143,96 @@ export class MeshtasticCodec {
       id: packet.id,
       rxTime: packet.rxTime,
       rxSnr: packet.rxSnr,
-      hopLimit: packet.hopLimit
+      hopLimit: packet.hopLimit,
+      channel: packet.channel,
     };
 
     if (packet.decoded) {
-      result.payload = this.#convertDataPayload(packet.decoded);
+      const payload = this.#convertDataPayload(packet.decoded);
+      result.payload = payload;
+      result.decoded = payload;
     }
 
     return result;
   }
 
-  /**
-   * Convert OCP packet to Meshtastic MeshPacket
-   * @private
-   */
   #convertToMeshPacket(ocpPacket) {
     const packet = {
       to: ocpPacket.to,
       id: ocpPacket.id,
-      hopLimit: ocpPacket.hopLimit || 3
+      hopLimit: ocpPacket.hopLimit || 3,
+      channel: ocpPacket.channel ?? 0,
     };
 
-    if (ocpPacket.payload) {
-      packet.decoded = this.#convertToDataPayload(ocpPacket.payload);
+    const payload = ocpPacket.payload ?? ocpPacket.decoded;
+    if (payload) {
+      packet.decoded = this.#convertToDataPayload(payload);
     }
 
     return packet;
   }
 
-  /**
-   * Convert Meshtastic Data payload to OCP format
-   * @private
-   */
   #convertDataPayload(data) {
     const result = {
       portnum: data.portnum,
-      payload: data.payload ? data.payload.toString("base64") : undefined,
+      payload: data.payload ? Buffer.from(data.payload).toString("base64") : undefined,
       wantResponse: data.wantResponse,
       dest: data.dest,
       source: data.source,
-      requestId: data.requestId
+      requestId: data.requestId,
     };
 
-    // Handle text messages specifically
-    if (data.portnum === "TEXT_MESSAGE_APP") {
-      result.text = data.payload ? data.payload.toString("utf8") : "";
+    if (isTextPortnum(data.portnum)) {
+      result.text = data.payload ? Buffer.from(data.payload).toString("utf8") : "";
     }
 
     return result;
   }
 
-  /**
-   * Convert OCP payload to Meshtastic Data format
-   * @private
-   */
   #convertToDataPayload(ocpPayload) {
     const data = {
       portnum: ocpPayload.portnum,
       wantResponse: ocpPayload.wantResponse,
       dest: ocpPayload.dest,
       source: ocpPayload.source,
-      requestId: ocpPayload.requestId
+      requestId: ocpPayload.requestId,
     };
 
     if (ocpPayload.payload) {
       data.payload = Buffer.from(ocpPayload.payload, "base64");
     }
 
-    // Handle text messages specifically
-    if (ocpPayload.portnum === "TEXT_MESSAGE_APP" && ocpPayload.text) {
+    if (isTextPortnum(ocpPayload.portnum) && ocpPayload.text) {
       data.payload = Buffer.from(ocpPayload.text, "utf8");
+      // Prefer numeric enum for wire encode
+      if (data.portnum === "TEXT_MESSAGE_APP") data.portnum = 1;
     }
 
     return data;
   }
 
-  /**
-   * Convert Meshtastic NodeInfo to OCP format
-   * @private
-   */
   #convertNodeInfo(nodeInfo) {
     return {
       num: nodeInfo.num,
-      user: nodeInfo.user ? {
-        id: nodeInfo.user.id,
-        longName: nodeInfo.user.longName,
-        shortName: nodeInfo.user.shortName,
-        macaddr: nodeInfo.user.macaddr ? Array.from(nodeInfo.user.macaddr) : undefined,
-        hwModel: nodeInfo.user.hwModel
-      } : undefined,
-      position: nodeInfo.position ? {
-        latitudeI: nodeInfo.position.latitudeI,
-        longitudeI: nodeInfo.position.longitudeI,
-        altitude: nodeInfo.position.altitude,
-        time: nodeInfo.position.time
-      } : undefined,
+      user: nodeInfo.user
+        ? {
+            id: nodeInfo.user.id,
+            longName: nodeInfo.user.longName,
+            shortName: nodeInfo.user.shortName,
+            macaddr: nodeInfo.user.macaddr ? Array.from(nodeInfo.user.macaddr) : undefined,
+            hwModel: nodeInfo.user.hwModel,
+          }
+        : undefined,
+      position: nodeInfo.position
+        ? {
+            latitudeI: nodeInfo.position.latitudeI,
+            longitudeI: nodeInfo.position.longitudeI,
+            altitude: nodeInfo.position.altitude,
+            time: nodeInfo.position.time,
+          }
+        : undefined,
       lastHeard: nodeInfo.lastHeard,
-      snr: nodeInfo.snr
+      snr: nodeInfo.snr,
     };
   }
 }

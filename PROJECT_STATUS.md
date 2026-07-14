@@ -32,19 +32,33 @@
 - NetworkState, RouteTable, onpCodec
 
 ### Phase 6 — Desktop UI ✅
-- Electron + React + Tailwind app shell with submarine/CIC dark aesthetic
+- Electron + React + Tailwind app shell with INDI/ATA gray-black aesthetic
 - 7 workspaces: Sonar, Messaging, Network, Devices, Spectrum, Map, Settings
-- SonarPPI canvas with real node/blip rendering
-- Messaging wired to real Meshtastic transport
-- Network node table with live state
+- SonarPPI canvas with real node/blip rendering, color accents, GPS bearing/range when fix available
+- Messaging wired to real `MeshtasticTransport` (TCP) — not stub discovery alone
+- Network node table with live state, selection panel, connection banner
 - Devices workspace (Connections, RuView, Firmware, Baofeng tabs)
 - RTL-SDR spectrum with FFT + waterfall + bookmarks + peak hold + VFO + recording
-- MapLibre offline map with node markers and RuView sensing overlay + PMTiles server
+- MapLibre full-color basemap (CARTO Voyager online + colorful PMTiles offline style) with node/sensing markers
+- GPS `latitudeI`/`longitudeI` → degrees for map and sonar
 - Baofeng channel editor with serial read/write
 - Settings with connection status and tool checklist
 - Windows NSIS installer + Linux AppImage/deb packaging
 
-### Phase 7 — Flutter Migration ✅ (4 phases)
+### Phase 7 — Plugin System ✅
+- `packages/ocp_plugin_api/` (`@ocp/plugin-api`) — manifest validation, permissions, capabilities, `PluginHost` (install/uninstall/activate/deactivate)
+- `packages/ocp_plugin_example/` (`@ocp/plugin-example`) — Diagnostics `status.provider` example plugin
+- Electron `OcpService` hosts plugins in-process; Settings UI lists activate/deactivate + status snapshot
+- IPC: `ocp:plugins:list|activate|deactivate|status`
+
+### Phase 8 — Security ✅
+- `PinVault` + upgraded `LocalKeyCipher` (scrypt + random salt, AES-256-GCM) in `@ocp/offline-core`
+- `JsonFileOfflineStore` full-file encryption (`OCPENC1` envelope) when PIN unlocked
+- CRC-32 helpers (`crc32` / `appendCrc32` / `verifyCrc32`)
+- `NetworkState` sliding-window replay protection (`packetReplay` event)
+- Electron LockScreen + Settings PIN controls (set / change / lock / clear)
+
+### Flutter Migration ✅ (4 phases; parallel to desktop Phase 6–7)
 
 #### Flutter Phase 1 — Scaffold ✅
 - `apps/ocp_app/` Flutter project structure
@@ -94,16 +108,18 @@
 6. **RTL-SDR:** rtl_tcp TCP streaming + kissfft-js FFT.
 7. **Baofeng:** CHIRP-compatible 0xA5 serial protocol.
 8. **State persistence:** shared_preferences for Flutter; localStorage for Electron.
+9. **Plugins:** In-process `PluginHost` (`@ocp/plugin-api`) with install/uninstall, capability registration, and permission gating; example diagnostics plugin proves third-party usability.
+10. **Security:** PIN vault (scrypt + HMAC verifier), AES-GCM encrypted offline DB, CRC-32 frame helpers, inbound packet replay window.
 
 ## Test status
 
 ```
-# tests 71
-# pass 71
+# tests 92
+# pass 92
 # fail 0
 ```
 
-Note: MeshtasticCodec still logs `root.loadSync is not a function` under protobufjs v8 (instantiation tests still pass). Wire-up of proto loading needs a follow-up for real encode/decode.
+Meshtastic bridge pins `protobufjs@^7` (root override); codec loads protos via `Root.loadSync` with `meshtastic/*.proto` import root.
 ## UI Theme
 - **Electron + Flutter both on gray/black INDI/ATA palette** (as of 2026-07-14)
 - Palette: bg=#111111, panel=#1a1a1a, text=#c8c8c8, bright=#e8e8e8, dim=#888888, muted=#666666
@@ -116,15 +132,26 @@ Note: MeshtasticCodec still logs `root.loadSync is not a function` under protobu
 - RTL-SDR requires external `rtl_tcp` binary.
 - Windows icon not yet converted to `.ico` (PNG generated via `npm run generate:icon`; electron-builder can use PNG on some targets).
 - Flutter app not yet compiled/verified (install Flutter SDK on this machine).
+- OS keychain/keystore wrap for PIN-derived keys not yet implemented.
+- Flutter PIN/plugin parity with Electron not in this pass (bridge listens on 127.0.0.1; message text path fixed).
+- Electron Meshtastic connect is TCP-only in this build (serial/BLE factories not wired).
 
 ## Pending / Next priorities
-1. Flutter SDK install and build verification (`flutter build windows`, `flutter build apk`)
-2. Windows .ico + installer test on actual Windows
-3. Flutter mobile platform configs (iOS/Android permissions, navigation)
-4. Integration testing with real hardware (RuView, Meshtastic, RTL-SDR)
-5. Flutter offline raster tile pack (PMTiles/MVT remains desktop MapLibre-only)
+1. **Phase 9 — Performance & Cross-Platform QA** (instrumentation + PRS §15 metrics) per `specs/build-plan.md`
+2. Flutter SDK install and build verification (`flutter build windows`, `flutter build apk`)
+3. Windows .ico + installer test on actual Windows
+4. Integration smoke with real Meshtastic TCP (Devices → connect → Network/Sonar/Map/Messaging)
+5. OS keychain/keystore wrap for PIN-derived keys (Phase 8 hardening)
+6. Flutter PIN/plugin parity with desktop security model
+7. Flutter offline raster tile pack (PMTiles/MVT remains desktop MapLibre-only)
 
 ## Recent corrections (2026-07-14)
+- **Code-review remediation:** Meshtastic `0x94C3` framing + numeric `wantConfigId`; protobufjs v7 + real proto encode/decode; PortNum text; IPC unlock gate + lockout; `setPin`/`changePin` rewrap; map HTML escape; sonar decay; history persist/cap; localhost binds; plugin `state.read` gate
+- Phase 8 security: PinVault, encrypted offline DB, CRC-32, NetworkState replay window, Electron LockScreen + Settings PIN UI
+- Phase 7 plugin system: `@ocp/plugin-api` PluginHost + `@ocp/plugin-example` diagnostics status provider; Settings plugins panel
+- Closed Phase 6 functional gaps: Electron `ocp:connect` uses `MeshtasticTransport` for TCP; GPS I-fields; message channel; Network workspace live table
+- SonarPPI color accents (cyan rings, green N/self, amber sweep tip); GPS bearing/range via haversine when local + peer fix
+- Map: CARTO Voyager online; colorful Protomaps-style offline `createOperatorStyle`
 - Finished INDI/ATA theme migration leftovers (spectrum canvas, map markers, offline map style)
 - Desktop MapCanvas: removed sensing pulse animation; map control colors use INDI palette (#111111 scale bar, neutral invert on nav buttons)
 - Flutter MapPage: `flutter_map` + CARTO dark tiles; RuView sensing markers wired via `ConnectionProvider.ruViewSensing` with desktop-matching x/y→lat/lon projection; offline toggle dims tiles + snackbar (no fake localhost PMTiles)

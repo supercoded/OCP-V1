@@ -8,16 +8,15 @@ import {
   Settings,
 } from "lucide-react";
 import type { Workspace } from "../App";
-import { Link } from "react-router-dom";
 
-const items: { id: Workspace; label: string; icon: React.ElementType; path: string }[] = [
-  { id: "sonar", label: "Sonar", icon: Radar, path: "/" },
-  { id: "messaging", label: "Msg", icon: MessageSquare, path: "/messaging" },
-  { id: "network", label: "Net", icon: Network, path: "/network" },
-  { id: "devices", label: "Devices", icon: Cpu, path: "/devices" },
-  { id: "spectrum", label: "Spectrum", icon: Activity, path: "/spectrum" },
-  { id: "map", label: "Map", icon: Map, path: "/map" },
-  { id: "settings", label: "Settings", icon: Settings, path: "/settings" },
+const items: { id: Workspace; label: string; icon: React.ElementType }[] = [
+  { id: "sonar", label: "Sonar", icon: Radar },
+  { id: "messaging", label: "Msg", icon: MessageSquare },
+  { id: "network", label: "Net", icon: Network },
+  { id: "devices", label: "Devices", icon: Cpu },
+  { id: "spectrum", label: "Spectrum", icon: Activity },
+  { id: "map", label: "Map", icon: Map },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar({
@@ -39,21 +38,21 @@ export function Sidebar({
         {items.map((item) => {
           const isActive = active === item.id;
           return (
-            <Link
+            <button
               key={item.id}
-              to={item.path}
+              type="button"
               onClick={() => onChange(item.id)}
               className={[
                 "w-[40px] h-[40px] rounded flex flex-col items-center justify-center transition-all",
                 "hover:bg-ocp-panel-2",
                 isActive
                   ? "bg-ocp-panel-3 text-ocp-bright border border-ocp-border-2"
-                  : "text-ocp-muted",
+                  : "text-ocp-muted border border-transparent",
               ].join(" ")}
             >
               <item.icon className="w-[20px] h-[20px]" />
               <span className="text-[8px] uppercase tracking-wider font-medium mt-[1px]">{item.label}</span>
-            </Link>
+            </button>
           );
         })}
       </div>

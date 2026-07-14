@@ -24,7 +24,10 @@
     "desktop:dist:linux": "npm run dist:linux --workspace=@ocp/desktop"
   },
   "dependencies": {
-    "protobufjs": "^8.7.0"
+    "protobufjs": "^7.4.0"
+  },
+  "overrides": {
+    "protobufjs": "^7.4.0"
   },
   "devDependencies": {
     "electron": "34.0.0"

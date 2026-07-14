@@ -1,6 +1,7 @@
 import http from 'http';
 import fs from 'fs';
-import { PMTiles } from 'pmtiles';
+import pmtilesPkg from 'pmtiles';
+const { PMTiles } = pmtilesPkg;
 
 class FileSource {
   constructor(path) {
@@ -57,7 +58,7 @@ export class PmtilesServer {
       res.writeHead(404);
       res.end('Not found');
     });
-    await new Promise((resolve) => this.server.listen(this.port || 0, () => resolve()));
+    await new Promise((resolve) => this.server.listen(this.port || 0, "127.0.0.1", () => resolve()));
     this.actualPort = this.server.address().port;
     return this.actualPort;
   }
@@ -69,7 +70,7 @@ export class PmtilesServer {
   }
 }
 
-/** INDI/ATA gray-black operator console map style (offline vector tiles). */
+/** Full-color Protomaps-like operator map style (offline vector tiles). */
 export function createOperatorStyle(tileUrl) {
   return {
     version: 8,
@@ -77,11 +78,99 @@ export function createOperatorStyle(tileUrl) {
       protomaps: { type: 'vector', tiles: [tileUrl], maxzoom: 14 },
     },
     layers: [
-      { id: 'background', type: 'background', paint: { 'background-color': '#111111' } },
-      { id: 'water', type: 'fill', source: 'protomaps', 'source-layer': 'water', paint: { 'fill-color': '#1a1a1a' } },
-      { id: 'landuse', type: 'fill', source: 'protomaps', 'source-layer': 'landuse', paint: { 'fill-color': '#161616' } },
-      { id: 'roads', type: 'line', source: 'protomaps', 'source-layer': 'roads', paint: { 'line-color': '#333333', 'line-width': 1 } },
-      { id: 'boundaries', type: 'line', source: 'protomaps', 'source-layer': 'boundaries', paint: { 'line-color': '#4fc3f7', 'line-width': 1 } },
+      { id: 'background', type: 'background', paint: { 'background-color': '#f2efe9' } },
+      {
+        id: 'earth',
+        type: 'fill',
+        source: 'protomaps',
+        'source-layer': 'earth',
+        paint: { 'fill-color': '#ebe6dc' },
+      },
+      {
+        id: 'landuse',
+        type: 'fill',
+        source: 'protomaps',
+        'source-layer': 'landuse',
+        paint: {
+          'fill-color': [
+            'match',
+            ['get', 'kind'],
+            'park', '#c8e6c9',
+            'forest', '#a5d6a7',
+            'cemetery', '#c5e1a5',
+            'hospital', '#ffcdd2',
+            'school', '#fff9c4',
+            'industrial', '#d7ccc8',
+            '#dcedc8',
+          ],
+          'fill-opacity': 0.85,
+        },
+      },
+      {
+        id: 'water',
+        type: 'fill',
+        source: 'protomaps',
+        'source-layer': 'water',
+        paint: { 'fill-color': '#90caf9' },
+      },
+      {
+        id: 'boundaries',
+        type: 'line',
+        source: 'protomaps',
+        'source-layer': 'boundaries',
+        paint: {
+          'line-color': '#7986cb',
+          'line-width': 1,
+          'line-dasharray': [2, 2],
+        },
+      },
+      {
+        id: 'roads-minor',
+        type: 'line',
+        source: 'protomaps',
+        'source-layer': 'roads',
+        filter: ['in', 'kind', 'minor_road', 'other', 'path'],
+        paint: { 'line-color': '#ffffff', 'line-width': 1 },
+      },
+      {
+        id: 'roads-major',
+        type: 'line',
+        source: 'protomaps',
+        'source-layer': 'roads',
+        filter: ['in', 'kind', 'major_road', 'medium_road'],
+        paint: { 'line-color': '#ffcc80', 'line-width': 1.5 },
+      },
+      {
+        id: 'roads-highway',
+        type: 'line',
+        source: 'protomaps',
+        'source-layer': 'roads',
+        filter: ['==', 'kind', 'highway'],
+        paint: { 'line-color': '#ff8a65', 'line-width': 2.5 },
+      },
+      {
+        id: 'buildings',
+        type: 'fill',
+        source: 'protomaps',
+        'source-layer': 'buildings',
+        paint: { 'fill-color': '#cfd8dc', 'fill-opacity': 0.7 },
+      },
+      {
+        id: 'places',
+        type: 'symbol',
+        source: 'protomaps',
+        'source-layer': 'places',
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-size': 11,
+          'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
+        },
+        paint: {
+          'text-color': '#37474f',
+          'text-halo-color': '#ffffff',
+          'text-halo-width': 1,
+        },
+      },
     ],
   };
 }

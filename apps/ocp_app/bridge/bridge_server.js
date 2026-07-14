@@ -207,7 +207,11 @@ async function handleCommand(ws, wss, pkgs, msg) {
           if (decoded.packet) {
             broadcastEvent(wss, "messageReceived", {
               id: decoded.packet.id || Date.now(),
-              text: decoded.packet.text || "",
+              text:
+                decoded.packet.decoded?.text ??
+                decoded.packet.payload?.text ??
+                decoded.packet.text ??
+                "",
               from: String(decoded.packet.from || ""),
               to: decoded.packet.to ? String(decoded.packet.to) : null,
               channel: decoded.packet.channel || 0,
@@ -496,8 +500,8 @@ async function main() {
     });
   });
 
-  server.listen(PORT, () => {
-    console.log(`[bridge] OCP-V1 bridge server listening on port ${PORT}`);
+  server.listen(PORT, "127.0.0.1", () => {
+    console.log(`[bridge] OCP-V1 bridge server listening on 127.0.0.1:${PORT}`);
   });
 
   // Graceful shutdown

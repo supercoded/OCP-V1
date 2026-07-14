@@ -2,6 +2,14 @@ import { useEffect, useRef, useCallback } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 export interface NodeMarker {
   id: number;
   name?: string;
@@ -40,17 +48,17 @@ export interface MapCanvasProps {
   className?: string;
 }
 
-// Dark submarine style as fallback when no offline tiles
+// Full-color CARTO Voyager basemap (natural land/water/roads under INDI chrome)
 const DEFAULT_DARK_STYLE: maplibregl.StyleSpecification = {
   version: 8,
-  name: "OCP Dark",
+  name: "OCP Voyager",
   sources: {
-    carto_dark: {
+    carto_voyager: {
       type: "raster",
       tiles: [
-        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+        "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png",
+        "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png",
+        "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png",
       ],
       tileSize: 256,
       attribution: "&copy; OpenStreetMap &copy; CARTO",
@@ -59,9 +67,9 @@ const DEFAULT_DARK_STYLE: maplibregl.StyleSpecification = {
   },
   layers: [
     {
-      id: "carto-dark-bg",
+      id: "carto-voyager-bg",
       type: "raster",
-      source: "carto_dark",
+      source: "carto_voyager",
       minzoom: 0,
       maxzoom: 19,
     },
@@ -246,11 +254,11 @@ export function MapCanvas({
         closeButton: false,
       }).setHTML(`
         <div style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #c8c8c8; background: #1a1a1a; padding: 4px 8px;">
-          <div style="color: #4caf50; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${node.name || `Node ${node.id}`}</div>
-          <div style="margin-top: 4px; color: #888888;">ID: ${node.id}</div>
-          ${node.rssi != null ? `<div>RSSI: ${node.rssi.toFixed(1)} dBm</div>` : ""}
-          ${node.snr != null ? `<div>SNR: ${node.snr.toFixed(1)} dB</div>` : ""}
-          <div>${node.lat.toFixed(4)}, ${node.lon.toFixed(4)}</div>
+          <div style="color: #4caf50; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${escapeHtml(node.name || `Node ${node.id}`)}</div>
+          <div style="margin-top: 4px; color: #888888;">ID: ${escapeHtml(node.id)}</div>
+          ${node.rssi != null ? `<div>RSSI: ${escapeHtml(node.rssi.toFixed(1))} dBm</div>` : ""}
+          ${node.snr != null ? `<div>SNR: ${escapeHtml(node.snr.toFixed(1))} dB</div>` : ""}
+          <div>${escapeHtml(node.lat.toFixed(4))}, ${escapeHtml(node.lon.toFixed(4))}</div>
         </div>
       `);
       marker.setPopup(popup);
@@ -286,10 +294,10 @@ export function MapCanvas({
         closeButton: false,
       }).setHTML(`
         <div style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #c8c8c8; background: #1a1a1a; padding: 4px 8px;">
-          <div style="color: #d4a017; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">RuView ${target.nodeId}</div>
-          <div style="margin-top: 4px; color: #888888;">Source: ${target.source}</div>
-          ${target.rssi != null ? `<div>RSSI: ${target.rssi.toFixed(1)} dBm</div>` : ""}
-          <div>${target.lat.toFixed(4)}, ${target.lon.toFixed(4)}</div>
+          <div style="color: #d4a017; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">RuView ${escapeHtml(target.nodeId)}</div>
+          <div style="margin-top: 4px; color: #888888;">Source: ${escapeHtml(target.source)}</div>
+          ${target.rssi != null ? `<div>RSSI: ${escapeHtml(target.rssi.toFixed(1))} dBm</div>` : ""}
+          <div>${escapeHtml(target.lat.toFixed(4))}, ${escapeHtml(target.lon.toFixed(4))}</div>
         </div>
       `);
       marker.setPopup(popup);

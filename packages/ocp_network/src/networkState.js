@@ -33,18 +33,52 @@ class NodeInfo {
  * NetworkState tracks all known nodes, their last‑heard timestamps, and simple
  * link‑quality statistics. It emits events that higher‑level code can subscribe
  * to for UI updates or routing decisions.
+ *
+ * Replay protection: packets with a non-null `id` are keyed as `${from}:${id}`
+ * in a sliding window; duplicates are dropped and emit `packetReplay`.
  */
 export default class NetworkState extends EventEmitter {
-  constructor({ nodeTimeoutMs = 5 * 60 * 1000 } = {}) {
+  /**
+   * @param {{ nodeTimeoutMs?: number, replayWindowSize?: number }} [opts]
+   */
+  constructor({ nodeTimeoutMs = 5 * 60 * 1000, replayWindowSize = 512 } = {}) {
     super();
     this.nodeDB = new Map(); // nodeId -> NodeInfo
     this.nodeTimeoutMs = nodeTimeoutMs;
+    this.replayWindowSize = replayWindowSize;
+    /** @type {Map<string, number>} */
+    this._seenPackets = new Map();
     this._pruneTimer = setInterval(() => this._pruneStale(), this.nodeTimeoutMs);
+  }
+
+  #replayKey(packet) {
+    if (packet?.id == null || packet?.from == null) return null;
+    return `${packet.from}:${packet.id}`;
+  }
+
+  /**
+   * @param {any} packet
+   * @returns {boolean} true if this is a replay and should be ignored
+   */
+  #isReplay(packet) {
+    const key = this.#replayKey(packet);
+    if (!key) return false;
+    if (this._seenPackets.has(key)) return true;
+    this._seenPackets.set(key, Date.now());
+    while (this._seenPackets.size > this.replayWindowSize) {
+      const oldest = this._seenPackets.keys().next().value;
+      this._seenPackets.delete(oldest);
+    }
+    return false;
   }
 
   /** Handle an incoming packet (from the transport layer). */
   onPacket(packet) {
-    if (!packet?.from) return;
+    if (!packet?.from) return false;
+    if (this.#isReplay(packet)) {
+      this.emit("packetReplay", packet);
+      return false;
+    }
     const nodeId = packet.from;
     const isNew = !this.nodeDB.has(nodeId);
     const node = this.nodeDB.get(nodeId) ?? new NodeInfo(nodeId);
@@ -53,6 +87,7 @@ export default class NetworkState extends EventEmitter {
     if (isNew) this.emit("nodeAdded", node);
     else this.emit("nodeUpdated", node);
     this.emit("packetRelayed", packet);
+    return true;
   }
 
   /** Handle a NodeInfo broadcast (e.g., discovery beacon). */
@@ -89,6 +124,11 @@ export default class NetworkState extends EventEmitter {
     return [];
   }
 
+  /** Number of packet IDs currently remembered for replay checks. */
+  getSeenPacketCount() {
+    return this._seenPackets.size;
+  }
+
   /** Internal method to prune nodes that have timed out. */
   _pruneStale() {
     const now = Date.now();
@@ -105,4 +145,3 @@ export default class NetworkState extends EventEmitter {
     clearInterval(this._pruneTimer);
   }
 }
-

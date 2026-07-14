@@ -47,3 +47,20 @@ test("NetworkState prunes stale nodes", async () => {
   assert.equal(net.getNodes().length, 0);
   net.destroy();
 });
+
+test("NetworkState drops replayed packet ids", () => {
+  const net = new NetworkState({ replayWindowSize: 8 });
+  let replays = 0;
+  let relays = 0;
+  net.on("packetReplay", () => replays++);
+  net.on("packetRelayed", () => relays++);
+
+  assert.equal(net.onPacket({ from: 1, id: 42, rxSnr: 5 }), true);
+  assert.equal(net.onPacket({ from: 1, id: 42, rxSnr: 5 }), false);
+  assert.equal(replays, 1);
+  assert.equal(relays, 1);
+  // Different id is fine
+  assert.equal(net.onPacket({ from: 1, id: 43 }), true);
+  assert.equal(relays, 2);
+  net.destroy();
+});
