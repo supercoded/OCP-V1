@@ -130,8 +130,17 @@ jobs:
         run: flutter pub get
 
       - name: Build APK
+        id: flutter_build_apk
         working-directory: apps/ocp_app
-        run: flutter build apk --verbose
+        run: flutter build apk --release --verbose
+        continue-on-error: true
+
+      - name: Direct Gradle diagnostics
+        if: steps.flutter_build_apk.outcome == 'failure'
+        working-directory: apps/ocp_app/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:assembleRelease --stacktrace --info --no-daemon --no-build-cache || true
 
       - name: Debug build output
         if: always()
@@ -140,7 +149,7 @@ jobs:
           echo '--- APK/AAB files ---'
           find build -type f \( -name '*.apk' -o -name '*.aab' \) 2>/dev/null || echo 'No APK/AAB found'
           echo '--- outputs dir ---'
-          ls -la build/app/outputs/ 2>/dev/null || echo 'No outputs dir'
+          ls -laR build/app/outputs/ 2>/dev/null || echo 'No outputs dir'
           echo '--- flutter-apk dir ---'
           ls -la build/app/outputs/flutter-apk/ 2>/dev/null || echo 'No flutter-apk dir'
 
@@ -148,7 +157,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ocp-v1-android-apk
-          path: apps/ocp_app/build/app/outputs/flutter-apk/*.apk
+          path: |
+            apps/ocp_app/build/app/outputs/flutter-apk/*.apk
+            apps/ocp_app/build/app/outputs/apk/release/*.apk
+
+      - name: Fail if both Flutter and Gradle builds failed
+        if: steps.flutter_build_apk.outcome == 'failure'
+        run: exit 1
 
   release:
     name: Create Release
