@@ -136,7 +136,13 @@ jobs:
       - name: Debug build output
         if: always()
         working-directory: apps/ocp_app
-        run: find build -name '*.apk' -o -name '*.aab' 2>/dev/null || echo 'No APK/AAB found'; ls -la build/app/outputs/ 2>/dev/null || echo 'No outputs dir'
+        run: |
+          echo '--- APK/AAB files ---'
+          find build -type f \( -name '*.apk' -o -name '*.aab' \) 2>/dev/null || echo 'No APK/AAB found'
+          echo '--- outputs dir ---'
+          ls -la build/app/outputs/ 2>/dev/null || echo 'No outputs dir'
+          echo '--- flutter-apk dir ---'
+          ls -la build/app/outputs/flutter-apk/ 2>/dev/null || echo 'No flutter-apk dir'
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
