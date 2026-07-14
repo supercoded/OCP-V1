@@ -3,7 +3,7 @@ description: Shared Flutter theme and utilities for OCP‑V1.
 version: 0.1.0
 
 environment:
-  sdk: ^3.19.0
+  sdk: ^3.10.0
 
 dependencies:
   flutter:
