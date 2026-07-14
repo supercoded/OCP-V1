@@ -1,6 +1,7 @@
 name: ocp_v1
 description: Operational Comms Platform - Cross-platform field operations
 version: 0.1.0
+publish_to: 'none'
 
 environment:
   sdk: ^3.10.0

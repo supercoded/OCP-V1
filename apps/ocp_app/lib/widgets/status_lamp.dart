@@ -27,7 +27,7 @@ class StatusLamp extends StatelessWidget {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: _color().withOpacity(0.6),
+            color: _color().withValues(alpha: 0.6),
             blurRadius: 4,
             spreadRadius: 1,
           ),

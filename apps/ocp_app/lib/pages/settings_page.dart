@@ -4,9 +4,7 @@ import 'package:ocp_flutter_core/theme/ocp_colors.dart';
 import '../models/app_settings.dart';
 import '../providers/connection_provider.dart';
 import '../providers/settings_provider.dart';
-import '../providers/spectrum_provider.dart';
 import '../widgets/analog_button.dart';
-import '../widgets/status_lamp.dart';
 
 const _appVersion = '0.1.0';
 const _buildDate = '2026-07-12';
