@@ -1,117 +1,112 @@
-/**
- * my_application.cc — Linux desktop entry point for OCP-V1 Flutter app.
- *
- * On desktop, this launches the bridge_server.js as a child process
- * before the Flutter app starts. The Flutter app then connects to it
- * via WebSocketPlatformService.
- *
- * The bridge server provides access to Meshtastic, RTL-SDR, RuView,
- * and map tile services through the existing Node.js packages.
- */
+#include "my_application.h"
 
 #include <flutter_linux/flutter_linux.h>
-#include <glib.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <unistd.h>
+#ifdef GDK_WINDOWING_X11
+#include <gdk/gdkx.h>
+#endif
 
-// Global bridge server PID for cleanup
-static GPid bridge_pid = 0;
+#include "flutter/generated_plugin_registrant.h"
 
-/**
- * Launch the Node.js bridge server as a child process.
- *
- * Searches for bridge_server.js relative to the executable and in known
- * development paths.  Falls back gracefully if not found (the Flutter app
- * will try to reconnect via WebSocketPlatformService).
- */
-static gboolean launch_bridge_server() {
-  const gchar* home = g_get_home_dir();
-  gchar* bridge_paths[] = {
-      // Development: relative to build output
-      g_build_filename(home, ".openclaw", "workspace", "OCP-V1",
-                       "apps", "ocp_app", "bridge", "bridge_server.js", NULL),
-      // Alternative development path
-      g_build_filename("..", "bridge", "bridge_server.js", NULL),
-      NULL,
-  };
+struct _MyApplication {
+  GtkApplication parent_instance;
+  char** dart_entrypoint_arguments;
+};
 
-  for (int i = 0; bridge_paths[i] != NULL; i++) {
-    if (g_file_test(bridge_paths[i], G_FILE_TEST_EXISTS)) {
-      gchar* argv[] = {"node", (gchar*)bridge_paths[i], NULL};
-      GError* error = NULL;
+G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
-      gboolean launched = g_spawn_async(
-          NULL,          // working directory
-          argv,          // arguments
-          NULL,          // environment
-          G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
-          NULL,          // child setup
-          NULL,          // user data
-          &bridge_pid,   // PID
-          &error);
+static void my_application_init(MyApplication* self) {}
 
-      if (launched) {
-        g_print("OCP-V1: Bridge server launched (PID %d)\n", (int)bridge_pid);
-        // Give it a moment to start
-        g_usleep(500000); // 500ms
-        g_free(bridge_paths[i]);
-        return TRUE;
-      } else {
-        g_printerr("OCP-V1: Failed to launch bridge server: %s\n",
-                   error ? error->message : "unknown");
-        if (error) g_error_free(error);
-      }
-    }
-    g_free(bridge_paths[i]);
+static void my_application_dispose(GObject* object) {
+  MyApplication* self = MY_APPLICATION(object);
+  g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
+  G_OBJECT_CLASS(my_application_parent_class)->dispose(object);
+}
+
+static void my_application_class_init(MyApplicationClass* klass) {
+  G_OBJECT_CLASS(klass)->dispose = my_application_dispose;
+}
+
+static void my_application_activate(GApplication* application) {
+  MyApplication* self = MY_APPLICATION(application);
+  GtkWindow* window =
+      GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
+
+  // Use a header bar on non-Flathub platforms
+  g_autofree char* desktop = getenv("XDG_CURRENT_DESKTOP");
+  gboolean use_header_bar = TRUE;
+  if (desktop) {
+    g_autofree char* lower = g_ascii_strdown(desktop, -1);
+    use_header_bar = !g_strmatch(lower, "gnome") || !g_strmatch(lower, "ubuntu");
   }
 
-  g_print("OCP-V1: Bridge server not found — WebSocket connection will be retried\n");
-  return FALSE;
+  GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
+  gtk_widget_show(GTK_WIDGET(header_bar));
+  gtk_header_bar_set_title(header_bar, "OCP-V1");
+  gtk_header_bar_set_show_close_button(header_bar, TRUE);
+  gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
+
+  gtk_window_set_default_size(window, 1280, 720);
+  gtk_widget_show(GTK_WIDGET(window));
+
+  g_autoptr(FlDartProject) project = fl_dart_project_new("");
+  fl_dart_project_set_dart_entrypoint_arguments(project, self->dart_entrypoint_arguments);
+
+  FlView* view = fl_view_new(project);
+  gtk_widget_show(GTK_WIDGET(view));
+  gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(view));
+
+  fl_register_plugins(FL_PLUGIN_REGISTRY(view));
+
+  gtk_widget_grab_focus(GTK_WIDGET(view));
 }
 
-/**
- * Terminate the bridge server on shutdown.
- */
-static void terminate_bridge_server() {
-  if (bridge_pid > 0) {
-    kill(bridge_pid, SIGTERM);
-    g_print("OCP-V1: Bridge server terminated (PID %d)\n", (int)bridge_pid);
-    bridge_pid = 0;
+static gboolean my_application_local_command_line(GApplication* application,
+                                                  gchar*** arguments,
+                                                  int* exit_status) {
+  MyApplication* self = MY_APPLICATION(application);
+  self->dart_entrypoint_arguments = g_strdupv(*arguments + 1);
+
+  g_autoptr(GError) error = nullptr;
+  if (!g_application_register(application, nullptr, &error)) {
+    g_warning("Failed to register: %s", error->message);
+    *exit_status = 1;
+    return TRUE;
+  }
+
+  g_application_activate(application);
+  *exit_status = 0;
+  return TRUE;
+}
+
+static void my_application_startup(GApplication* application) {
+  G_APPLICATION_CLASS(my_application_parent_class)->startup(application);
+
+  // Set the application icon
+  g_autoptr(GError) error = nullptr;
+  GdkDisplay* display = gdk_display_get_default();
+  g_autoptr(GdkPixbuf) icon = gdk_pixbuf_new_from_resource(
+      "/io/ocp/v1/icons/icon.png", &error);
+  if (icon != nullptr) {
+    GtkIconTheme* theme = gtk_icon_theme_get_for_display(display);
+    // Register icon if needed
   }
 }
 
-/**
- * Application shutdown callback.
- */
-static void on_application_shutdown(GtkApplication* app, gpointer user_data) {
-  terminate_bridge_server();
+static void my_application_open(GApplication* application, GFile** files,
+                                gint n_files, const gchar* hint) {
+  MyApplication* self = MY_APPLICATION(application);
+  g_autofree char** dart_entrypoint_arguments = g_new0(char*, n_files + 2);
+  dart_entrypoint_arguments[0] = g_strdup("open");
+  for (gint i = 0; i < n_files; i++) {
+    dart_entrypoint_arguments[i + 1] = g_file_get_path(files[i]);
+  }
+  self->dart_entrypoint_arguments = dart_entrypoint_arguments;
+  g_application_activate(application);
 }
 
-/**
- * Main entry point for the Linux desktop application.
- *
- * Initializes GTK, launches the bridge server, and hands off to
- * Flutter's desktop embedding.
- */
-int main(int argc, char** argv) {
-  // Launch the bridge server before starting Flutter
-  launch_bridge_server();
-
-  // Set up GTK application
-  GtkApplication* app = gtk_application_new(
-      "com.ocp.ocp_v1", G_APPLICATION_FLAGS_NONE);
-
-  g_signal_connect(app, "shutdown", G_CALLBACK(on_application_shutdown), NULL);
-
-  // The Flutter desktop embedding will handle the rest.
-  // In a full Flutter desktop project, this would call
-  // flutter_plugins_gemini_application_run() or similar.
-  // For now, we rely on the Flutter tooling to generate the actual
-  // runner — this file serves as a reference for the bridge launch logic.
-
-  int status = g_application_run(G_APPLICATION(app), argc, argv);
-  g_object_unref(app);
-
-  return status;
+MyApplication* my_application_new() {
+  return MY_APPLICATION(g_object_new(my_application_get_type(),
+                                     "application-id", "io.ocp.v1",
+                                     "flags", G_APPLICATION_HANDLES_COMMAND_LINE | G_APPLICATION_HANDLES_OPEN,
+                                     nullptr));
 }
