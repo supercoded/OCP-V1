@@ -6,7 +6,7 @@
  */
 
 import { BaofengProtocol, BAOFENG_BAUD_RATE, BAOFENG_CHANNEL_COUNT, BAOFENG_CHANNEL_BLOCK_SIZE, BAOFENG_READ_BLOCK_SIZE, encodeChannelBlock, decodeChannelBlock, encodeChannelName, decodeChannelName, } from "./baofengProtocol.js";
-import { createDefaultChannels, type ChannelData } from "./channelModel.js";
+import { createDefaultChannels } from "./channelModel.js";
 
 /**
  * @typedef {Object} BaofengTransportOptions

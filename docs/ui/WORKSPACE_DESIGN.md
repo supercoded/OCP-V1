@@ -10,15 +10,15 @@ Mike wants a **very nice looking, analog, tactile UI** with optional sound and a
 
 ## Core visual metaphor
 
-- **Submarine CIC / sonar room:** dark background, green/amber phosphor accents, glass/crt scanline texture, rotary controls, toggle switches.
-- **Analog feel:** skeuomorphic dials, glowing indicators, subtle flicker, sound effects (toggle clicks, knob ticks, sweep "ping").
+- **INDI/ATA operator console:** gray/black dense UI (`#111` / `#1a1a1a`), muted text, status colors only for indicators.
+- **Analog feel:** tactile dials and toggles without neon glow or CRT scanlines.
 - **Tactile audio:** optional Web Audio sound layer for interactions and the sonar sweep ping.
 - **Signal mapper:** circular PPI (Plan Position Indicator) radar/sonar display with:
   - Rotating sweep arm.
   - Concentric range rings.
   - Bearing grid (0–360°).
   - "Blips" for Meshtastic nodes, RTL-SDR peaks, and Wi-Fi probe targets.
-  - Blips fade as sweep passes over them (persistence / afterglow).
+  - Blips refresh as sweep passes (subtle trail, no phosphor glow).
   - Distance derived from RSSI or known GPS position.
 
 ## Stack

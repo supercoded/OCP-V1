@@ -79,15 +79,14 @@ function createNodeMarkerElement(node: NodeMarker): HTMLDivElement {
     cursor: pointer;
   `;
 
-  // Diamond shape marker
+  // Diamond shape marker — flat status green, no glow
   const marker = document.createElement("div");
   marker.style.cssText = `
     width: 14px;
     height: 14px;
     background: #4caf50;
-    border: 2px solid #0a1f1c;
+    border: 2px solid #e8e8e8;
     transform: rotate(45deg);
-    box-shadow: 0 0 10px rgba(0, 240, 160, 0.6), 0 0 20px rgba(0, 240, 160, 0.3);
   `;
   el.appendChild(marker);
 
@@ -96,10 +95,10 @@ function createNodeMarkerElement(node: NodeMarker): HTMLDivElement {
   label.style.cssText = `
     margin-top: 2px;
     padding: 1px 4px;
-    background: rgba(13, 22, 29, 0.85);
+    background: rgba(17, 17, 17, 0.9);
     border: 1px solid #333333;
     border-radius: 2px;
-    color: #4caf50;
+    color: #c8c8c8;
     font-size: 10px;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     white-space: nowrap;
@@ -124,16 +123,14 @@ function createSensingMarkerElement(target: SensingTarget): HTMLDivElement {
     cursor: pointer;
   `;
 
-  // Pulsing circle marker
+  // Sensing marker — flat amber status color (no pulse/glow)
   const marker = document.createElement("div");
   marker.style.cssText = `
     width: 12px;
     height: 12px;
-    background: #ffaa00;
-    border: 2px solid rgba(255, 170, 0, 0.4);
+    background: #d4a017;
+    border: 2px solid #e8e8e8;
     border-radius: 50%;
-    box-shadow: 0 0 10px rgba(255, 170, 0, 0.6), 0 0 20px rgba(255, 170, 0, 0.3);
-    animation: ocp-sensing-pulse 1.5s ease-in-out infinite;
   `;
   el.appendChild(marker);
 
@@ -142,10 +139,10 @@ function createSensingMarkerElement(target: SensingTarget): HTMLDivElement {
   label.style.cssText = `
     margin-top: 2px;
     padding: 1px 4px;
-    background: rgba(13, 22, 29, 0.85);
+    background: rgba(17, 17, 17, 0.9);
     border: 1px solid #333333;
     border-radius: 2px;
-    color: #ffaa00;
+    color: #d4a017;
     font-size: 10px;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     white-space: nowrap;
@@ -289,7 +286,7 @@ export function MapCanvas({
         closeButton: false,
       }).setHTML(`
         <div style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #c8c8c8; background: #1a1a1a; padding: 4px 8px;">
-          <div style="color: #ffaa00; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">RuView ${target.nodeId}</div>
+          <div style="color: #d4a017; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">RuView ${target.nodeId}</div>
           <div style="margin-top: 4px; color: #888888;">Source: ${target.source}</div>
           ${target.rssi != null ? `<div>RSSI: ${target.rssi.toFixed(1)} dBm</div>` : ""}
           <div>${target.lat.toFixed(4)}, ${target.lon.toFixed(4)}</div>
@@ -312,17 +309,12 @@ export function MapCanvas({
   return (
     <div className={`relative ${className}`}>
       <div ref={containerRef} className="absolute inset-0" />
-      {/* Inject pulse animation keyframes */}
       <style>{`
-        @keyframes ocp-sensing-pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.7; transform: scale(1.3); }
-        }
         .maplibregl-popup-content {
           background: #1a1a1a !important;
           border: 1px solid #333333 !important;
           border-radius: 4px !important;
-          box-shadow: 0 0 20px rgba(0, 240, 160, 0.15) !important;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
           padding: 0 !important;
         }
         .maplibregl-popup-tip {
@@ -339,13 +331,13 @@ export function MapCanvas({
           border-color: #333333 !important;
         }
         .maplibregl-ctrl-group button span {
-          filter: invert(0.85) sepia(0.2) hue-rotate(120deg) !important;
+          filter: invert(0.9) !important;
         }
         .maplibregl-ctrl-group button:hover {
           background: #222222 !important;
         }
         .maplibregl-ctrl-scale {
-          background: rgba(13, 22, 29, 0.85) !important;
+          background: rgba(17, 17, 17, 0.9) !important;
           border-color: #333333 !important;
           color: #888888 !important;
           font-family: ui-monospace, SFMono-Regular, Menlo, monospace !important;

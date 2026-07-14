@@ -1,9 +1,16 @@
+import 'dart:async';
+import 'dart:math' show cos;
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:ocp_flutter_core/theme/ocp_colors.dart';
 import '../providers/network_provider.dart';
 import '../providers/connection_provider.dart';
 import '../widgets/status_lamp.dart';
+
+/// Default center: continental US (matches desktop MapCanvas).
+const _defaultCenter = LatLng(39.5, -98.5);
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -13,22 +20,30 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> {
+  final MapController _mapController = MapController();
   double _zoom = 4.0;
+  LatLng _center = _defaultCenter;
   bool _showNodes = true;
   bool _showSensing = true;
   bool _showOfflineTiles = false;
+  Timer? _cameraDebounce;
+
+  @override
+  void dispose() {
+    _cameraDebounce?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final network = context.watch<NetworkProvider>();
     final conn = context.watch<ConnectionProvider>();
 
-    // Nodes with positions
     final positionedNodes = network.nodes.where((n) => n.hasPosition).toList();
+    final sensingMarkers = _showSensing ? _projectSensing(conn, positionedNodes) : const <_ProjectedSensing>[];
 
     return Column(
       children: [
-        // Header bar
         Container(
           height: 44,
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -62,7 +77,7 @@ class _MapPageState extends State<MapPage> {
                   ),
                   const SizedBox(width: 16),
                   Text(
-                    '${positionedNodes.length} nodes',
+                    '${positionedNodes.length} nodes · ${sensingMarkers.length} targets',
                     style: const TextStyle(fontSize: 11, fontFamily: 'JetBrainsMono', color: OcpColors.ocpDim),
                   ),
                 ],
@@ -70,23 +85,73 @@ class _MapPageState extends State<MapPage> {
             ],
           ),
         ),
-        // Main content
         Expanded(
           child: Row(
             children: [
-              // Map area
               Expanded(
                 child: Stack(
                   children: [
-                    // Map placeholder
-                    Container(
-                      color: OcpColors.ocpBg,
-                      child: CustomPaint(
-                        painter: _MapPlaceholderPainter(positionedNodes),
-                        size: Size.infinite,
+                    FlutterMap(
+                      mapController: _mapController,
+                      options: MapOptions(
+                        initialCenter: _center,
+                        initialZoom: _zoom,
+                        minZoom: 1,
+                        maxZoom: 18,
+                        backgroundColor: OcpColors.ocpBg,
+                        onPositionChanged: (camera, hasGesture) {
+                          if (!hasGesture) return;
+                          _cameraDebounce?.cancel();
+                          _cameraDebounce = Timer(const Duration(milliseconds: 80), () {
+                            if (!mounted) return;
+                            setState(() {
+                              _zoom = camera.zoom;
+                              _center = camera.center;
+                            });
+                          });
+                        },
                       ),
+                      children: [
+                        Opacity(
+                          opacity: _showOfflineTiles ? 0.55 : 1.0,
+                          child: TileLayer(
+                            // flutter_map renders raster tiles. Offline PMTiles/MVT is desktop MapLibre.
+                            // Offline toggle dims attribution and keeps CARTO dark until a raster pack ships.
+                            urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
+                            subdomains: const ['a', 'b', 'c'],
+                            userAgentPackageName: 'com.ocp.ocp_v1',
+                            tileProvider: NetworkTileProvider(),
+                          ),
+                        ),
+                        if (_showNodes)
+                          MarkerLayer(
+                            markers: positionedNodes.map((node) {
+                              final name = node.shortName.isNotEmpty ? node.shortName : node.longName;
+                              return Marker(
+                                point: LatLng(node.lat!, node.lon!),
+                                width: 88,
+                                height: 44,
+                                alignment: Alignment.topCenter,
+                                child: _NodeMarker(label: name.isNotEmpty ? name : 'N${node.id}'),
+                              );
+                            }).toList(),
+                          ),
+                        if (_showSensing)
+                          MarkerLayer(
+                            markers: sensingMarkers
+                                .map(
+                                  (t) => Marker(
+                                    point: t.point,
+                                    width: 72,
+                                    height: 40,
+                                    alignment: Alignment.topCenter,
+                                    child: _SensingMarker(label: 'RV-${t.nodeId}'),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                      ],
                     ),
-                    // Status overlay
                     Positioned(
                       bottom: 12,
                       left: 12,
@@ -95,9 +160,10 @@ class _MapPageState extends State<MapPage> {
                         decoration: BoxDecoration(
                           color: OcpColors.ocpBg.withAlpha(204),
                           borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: OcpColors.ocpBorder),
                         ),
                         child: Text(
-                          _statusText(conn, positionedNodes),
+                          _statusText(conn, positionedNodes, sensingMarkers.length),
                           style: const TextStyle(fontSize: 10, fontFamily: 'JetBrainsMono', color: OcpColors.ocpDim),
                         ),
                       ),
@@ -105,7 +171,6 @@ class _MapPageState extends State<MapPage> {
                   ],
                 ),
               ),
-              // Controls sidebar
               Container(
                 width: 220,
                 decoration: const BoxDecoration(
@@ -129,9 +194,20 @@ class _MapPageState extends State<MapPage> {
                       const SizedBox(height: 12),
                       _buildLayerToggle('Mesh Nodes', _showNodes, (v) => setState(() => _showNodes = v)),
                       _buildLayerToggle('Sensing Targets', _showSensing, (v) => setState(() => _showSensing = v)),
-                      _buildLayerToggle('Offline Tiles', _showOfflineTiles, (v) => setState(() => _showOfflineTiles = v)),
+                      _buildLayerToggle('Offline Preview', _showOfflineTiles, (v) {
+                        setState(() => _showOfflineTiles = v);
+                        if (v) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Offline PMTiles/MVT is served on desktop MapLibre. Mobile uses dark online tiles until a raster pack is added.',
+                              ),
+                              backgroundColor: OcpColors.ocpPanel2,
+                            ),
+                          );
+                        }
+                      }),
                       const SizedBox(height: 16),
-                      // Zoom controls
                       const Text(
                         'ZOOM',
                         style: TextStyle(
@@ -144,9 +220,9 @@ class _MapPageState extends State<MapPage> {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          _buildZoomButton(Icons.add, () => setState(() => _zoom = (_zoom + 1).clamp(1, 18))),
+                          _buildZoomButton(Icons.add, () => _setZoom(_zoom + 1)),
                           const SizedBox(width: 8),
-                          _buildZoomButton(Icons.remove, () => setState(() => _zoom = (_zoom - 1).clamp(1, 18))),
+                          _buildZoomButton(Icons.remove, () => _setZoom(_zoom - 1)),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Container(
@@ -165,19 +241,16 @@ class _MapPageState extends State<MapPage> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      // Center on self
                       SizedBox(
                         width: double.infinity,
-                        child: _buildMapButton('Center on Self', Icons.my_location, _handleCenterSelf),
+                        child: _buildMapButton('Center on Self', Icons.my_location, () => _handleCenterSelf(positionedNodes)),
                       ),
                       const SizedBox(height: 8),
-                      // Import tiles
                       SizedBox(
                         width: double.infinity,
                         child: _buildMapButton('Import Offline Tiles', Icons.download, _handleImportTiles),
                       ),
                       const SizedBox(height: 16),
-                      // Node markers list
                       const Text(
                         'NODE MARKERS',
                         style: TextStyle(
@@ -196,36 +269,84 @@ class _MapPageState extends State<MapPage> {
                       else
                         ...positionedNodes.map((node) => Padding(
                               padding: const EdgeInsets.symmetric(vertical: 3),
+                              child: InkWell(
+                                onTap: () => _focusNode(node),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: OcpColors.ocpGreen,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            node.shortName.isNotEmpty ? node.shortName : node.longName,
+                                            style: const TextStyle(fontSize: 11, color: OcpColors.ocpText),
+                                          ),
+                                          Text(
+                                            '${node.lat!.toStringAsFixed(4)}, ${node.lon!.toStringAsFixed(4)}',
+                                            style: const TextStyle(fontSize: 9, fontFamily: 'JetBrainsMono', color: OcpColors.ocpDim),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )),
+                      if (sensingMarkers.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        const Text(
+                          'SENSING TARGETS',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.2,
+                            color: OcpColors.ocpDim,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ...sensingMarkers.map(
+                          (t) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 3),
+                            child: InkWell(
+                              onTap: () {
+                                _mapController.move(t.point, 14);
+                                setState(() {
+                                  _center = t.point;
+                                  _zoom = 14;
+                                });
+                              },
                               child: Row(
                                 children: [
                                   Container(
                                     width: 8,
                                     height: 8,
-                                    decoration: BoxDecoration(
-                                      color: OcpColors.ocpBright,
+                                    decoration: const BoxDecoration(
+                                      color: OcpColors.ocpAmber,
                                       shape: BoxShape.circle,
-                                      boxShadow: [],
                                     ),
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          node.shortName.isNotEmpty ? node.shortName : node.longName,
-                                          style: const TextStyle(fontSize: 11, color: OcpColors.ocpText),
-                                        ),
-                                        Text(
-                                          '${node.lat!.toStringAsFixed(4)}, ${node.lon!.toStringAsFixed(4)}',
-                                          style: const TextStyle(fontSize: 9, fontFamily: 'JetBrainsMono', color: OcpColors.ocpDim),
-                                        ),
-                                      ],
+                                    child: Text(
+                                      'RV-${t.nodeId}',
+                                      style: const TextStyle(fontSize: 11, color: OcpColors.ocpText),
                                     ),
                                   ),
                                 ],
                               ),
-                            )),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -235,6 +356,37 @@ class _MapPageState extends State<MapPage> {
         ),
       ],
     );
+  }
+
+  List<_ProjectedSensing> _projectSensing(ConnectionProvider conn, List<MeshNode> positionedNodes) {
+    // Match desktop MapPage: project local x/y meters from own node (id 0) GPS.
+    final ownIdx = positionedNodes.indexWhere((n) => n.id == '0');
+    final ownNode = ownIdx >= 0 ? positionedNodes[ownIdx] : null;
+    final refLat = ownNode?.lat ?? _defaultCenter.latitude;
+    final refLon = ownNode?.lon ?? _defaultCenter.longitude;
+    const metersPerDegree = 111320.0;
+
+    return conn.ruViewSensing.map((s) {
+      final lat = refLat + (s.y / metersPerDegree);
+      final lon = refLon + (s.x / (metersPerDegree * cos(refLat * 3.141592653589793 / 180)));
+      return _ProjectedSensing(nodeId: s.nodeId, point: LatLng(lat, lon));
+    }).toList();
+  }
+
+  void _setZoom(double next) {
+    final zoom = next.clamp(1.0, 18.0);
+    _mapController.move(_center, zoom);
+    setState(() => _zoom = zoom);
+  }
+
+  void _focusNode(MeshNode node) {
+    if (!node.hasPosition) return;
+    final point = LatLng(node.lat!, node.lon!);
+    _mapController.move(point, 14);
+    setState(() {
+      _center = point;
+      _zoom = 14;
+    });
   }
 
   Widget _buildLayerToggle(String label, bool value, ValueChanged<bool> onChanged) {
@@ -317,95 +469,128 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  String _statusText(ConnectionProvider conn, List positionedNodes) {
-    if (conn.connected) {
-      return 'Online · ${positionedNodes.length} nodes positioned';
+  String _statusText(ConnectionProvider conn, List positionedNodes, int sensingCount) {
+    final offlineNote = _showOfflineTiles ? ' · offline preview' : '';
+    if (conn.connected || sensingCount > 0) {
+      return 'Live · ${positionedNodes.length} nodes · $sensingCount targets$offlineNote';
     }
-    return 'Ready — load tiles or connect for live data';
+    return 'Ready — dark basemap · connect for live nodes$offlineNote';
   }
 
-  void _handleCenterSelf() {
-    // Placeholder — would center on own node position
-    setState(() {
-      _zoom = 14.0;
-    });
+  void _handleCenterSelf(List<MeshNode> positionedNodes) {
+    if (positionedNodes.isEmpty) {
+      _mapController.move(_defaultCenter, 4);
+      setState(() {
+        _center = _defaultCenter;
+        _zoom = 4;
+      });
+      return;
+    }
+    _focusNode(positionedNodes.first);
   }
 
   void _handleImportTiles() {
-    // Placeholder — would open file dialog for offline tile import
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Offline vector PMTiles run on desktop MapLibre. Flutter map uses raster basemaps for now.',
+        ),
+        backgroundColor: OcpColors.ocpPanel2,
+      ),
+    );
   }
 }
 
-/// Placeholder map painter showing a dark grid with node markers
-class _MapPlaceholderPainter extends CustomPainter {
-  final List<MeshNode> nodes;
+class _ProjectedSensing {
+  final int nodeId;
+  final LatLng point;
+  const _ProjectedSensing({required this.nodeId, required this.point});
+}
 
-  _MapPlaceholderPainter(this.nodes);
+class _NodeMarker extends StatelessWidget {
+  final String label;
+
+  const _NodeMarker({required this.label});
 
   @override
-  void paint(Canvas canvas, Size size) {
-    // Dark background
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = OcpColors.ocpBg);
-
-    // Grid
-    final gridPaint = Paint()
-      ..color = OcpColors.ocpBorder.withAlpha(51)
-      ..strokeWidth = 0.5;
-
-    final gridSize = 40.0;
-    for (double x = 0; x < size.width; x += gridSize) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
-    }
-    for (double y = 0; y < size.height; y += gridSize) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-
-    // Center text
-    final textPainter = TextPainter(
-      text: const TextSpan(
-        text: 'MapLibre GL integration requires flutter_map package',
-        style: TextStyle(color: OcpColors.ocpDim, fontSize: 14, fontFamily: 'JetBrainsMono'),
-      ),
-      textDirection: TextDirection.ltr,
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: OcpColors.ocpGreen,
+            shape: BoxShape.circle,
+            border: Border.all(color: OcpColors.ocpBright, width: 1.5),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+          decoration: BoxDecoration(
+            color: OcpColors.ocpBg.withAlpha(230),
+            border: Border.all(color: OcpColors.ocpBorder),
+            borderRadius: BorderRadius.circular(2),
+          ),
+          child: Text(
+            label.toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 9,
+              fontFamily: 'JetBrainsMono',
+              letterSpacing: 0.5,
+              color: OcpColors.ocpText,
+            ),
+          ),
+        ),
+      ],
     );
-    textPainter.layout();
-    textPainter.paint(canvas, Offset((size.width - textPainter.width) / 2, (size.height - textPainter.height) / 2 - 30));
-
-    // Place node markers in a grid pattern on the placeholder
-    if (nodes.isNotEmpty) {
-      final markerPaint = Paint()..color = OcpColors.ocpGreen;
-      final glowPaint = Paint()
-        ..color = OcpColors.ocpGreen.withAlpha(51)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2;
-
-      // Distribute nodes across the map area
-      final cols = (size.width / 120).floor().clamp(1, 10);
-      final rows = (nodes.length / cols).ceil();
-
-      for (int i = 0; i < nodes.length && i < rows * cols; i++) {
-        final row = i ~/ cols;
-        final col = i % cols;
-        final x = 80.0 + col * ((size.width - 160) / cols.clamp(1, cols));
-        final y = 80.0 + row * 60.0;
-
-        canvas.drawCircle(Offset(x, y), 5, markerPaint);
-        canvas.drawCircle(Offset(x, y), 10, glowPaint);
-
-        // Label
-        final name = nodes[i].shortName.isNotEmpty ? nodes[i].shortName : nodes[i].longName;
-        final tp = TextPainter(
-          text: TextSpan(text: name, style: const TextStyle(color: OcpColors.ocpText, fontSize: 10, fontFamily: 'JetBrainsMono')),
-          textDirection: TextDirection.ltr,
-        );
-        tp.layout();
-        tp.paint(canvas, Offset(x - tp.width / 2, y + 14));
-      }
-    }
   }
+}
+
+class _SensingMarker extends StatelessWidget {
+  final String label;
+
+  const _SensingMarker({required this.label});
 
   @override
-  bool shouldRepaint(covariant _MapPlaceholderPainter oldDelegate) {
-    return oldDelegate.nodes != nodes;
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: OcpColors.ocpAmber,
+            shape: BoxShape.circle,
+            border: Border.all(color: OcpColors.ocpBright, width: 1.5),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+          decoration: BoxDecoration(
+            color: OcpColors.ocpBg.withAlpha(230),
+            border: Border.all(color: OcpColors.ocpBorder),
+            borderRadius: BorderRadius.circular(2),
+          ),
+          child: Text(
+            label.toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 9,
+              fontFamily: 'JetBrainsMono',
+              letterSpacing: 0.5,
+              color: OcpColors.ocpAmber,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

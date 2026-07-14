@@ -5,6 +5,7 @@ import '../models/connection_history.dart';
 import '../providers/connection_provider.dart';
 import '../widgets/status_lamp.dart';
 import '../widgets/analog_button.dart';
+import '../widgets/baofeng_channel_editor.dart';
 
 enum _DevicesTab { connections, ruview, firmware, baofeng }
 
@@ -385,36 +386,7 @@ class _DevicesPageState extends State<DevicesPage> {
             ],
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Baofeng UV-5R series channel editor for programming frequencies, CTCSS/DCS tones, and power settings.',
-            style: TextStyle(fontSize: 12, color: OcpColors.ocpDim, height: 1.4),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: OcpColors.ocpBg,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: OcpColors.ocpBorder),
-            ),
-            child: const Column(
-              children: [
-                Icon(Icons.radio, size: 32, color: OcpColors.ocpAmber),
-                SizedBox(height: 8),
-                Text(
-                  'Channel editor coming soon',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: OcpColors.ocpAmber),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Full Baofeng programming requires serial cable access\nand is currently available in the desktop (Electron) app only.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 10, color: OcpColors.ocpDim, height: 1.4),
-                ),
-              ],
-            ),
-          ),
+          const BaofengChannelEditor(),
         ],
       ),
     );

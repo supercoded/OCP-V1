@@ -31,7 +31,7 @@ export class PmtilesServer {
     this.server = http.createServer(async (req, res) => {
       const url = new URL(req.url, `http://${req.headers.host}`);
       if (url.pathname === '/style.json') {
-        const style = createPhosphorStyle(`http://localhost:${this.actualPort}/tiles/{z}/{x}/{y}.mvt`);
+        const style = createOperatorStyle(`http://localhost:${this.actualPort}/tiles/{z}/{x}/{y}.mvt`);
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify(style));
         return;
@@ -69,20 +69,24 @@ export class PmtilesServer {
   }
 }
 
-export function createPhosphorStyle(tileUrl) {
+/** INDI/ATA gray-black operator console map style (offline vector tiles). */
+export function createOperatorStyle(tileUrl) {
   return {
     version: 8,
     sources: {
       protomaps: { type: 'vector', tiles: [tileUrl], maxzoom: 14 },
     },
     layers: [
-      { id: 'background', type: 'background', paint: { 'background-color': '#0a1f1c' } },
-      { id: 'water', type: 'fill', source: 'protomaps', 'source-layer': 'water', paint: { 'fill-color': '#0c2b26' } },
-      { id: 'landuse', type: 'fill', source: 'protomaps', 'source-layer': 'landuse', paint: { 'fill-color': '#102a25' } },
-      { id: 'roads', type: 'line', source: 'protomaps', 'source-layer': 'roads', paint: { 'line-color': '#1a4a3e', 'line-width': 1 } },
-      { id: 'boundaries', type: 'line', source: 'protomaps', 'source-layer': 'boundaries', paint: { 'line-color': '#00ff9d', 'line-width': 1 } },
+      { id: 'background', type: 'background', paint: { 'background-color': '#111111' } },
+      { id: 'water', type: 'fill', source: 'protomaps', 'source-layer': 'water', paint: { 'fill-color': '#1a1a1a' } },
+      { id: 'landuse', type: 'fill', source: 'protomaps', 'source-layer': 'landuse', paint: { 'fill-color': '#161616' } },
+      { id: 'roads', type: 'line', source: 'protomaps', 'source-layer': 'roads', paint: { 'line-color': '#333333', 'line-width': 1 } },
+      { id: 'boundaries', type: 'line', source: 'protomaps', 'source-layer': 'boundaries', paint: { 'line-color': '#4fc3f7', 'line-width': 1 } },
     ],
   };
 }
+
+/** @deprecated Use createOperatorStyle — kept for older call sites */
+export const createPhosphorStyle = createOperatorStyle;
 
 export { FileSource };

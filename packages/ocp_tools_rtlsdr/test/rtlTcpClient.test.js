@@ -18,7 +18,11 @@ describe("RtlTcpClient", () => {
   });
 
   after(() => {
-    server.close();
+    return new Promise((resolve) => {
+      server.close(() => resolve());
+      // Force-drop lingering sockets so the test runner can exit on Windows.
+      server.closeAllConnections?.();
+    });
   });
 
   it("connects and receives dongle info", async () => {
@@ -84,16 +88,26 @@ describe("RtlTcpClient", () => {
 
     const client = new RtlTcpClient({ host: "127.0.0.1", port, autoReconnect: false });
     await client.connect();
+    // Wait for dongle header so the client is fully ready.
+    await new Promise((resolve) => {
+      if (client.dongleInfo) return resolve();
+      client.once("dongleInfo", resolve);
+    });
     client.setCenterFreq(145000000);
     client.setSampleRate(2048000);
 
-    await new Promise((r) => setTimeout(r, 50));
+    // Commands may arrive coalesced in one TCP chunk — wait until 10 bytes total.
+    const deadline = Date.now() + 1000;
+    while (Buffer.concat(received).length < 10 && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 10));
+    }
 
-    assert.strictEqual(received.length, 2);
-    assert.strictEqual(received[0].readUInt8(0), RTL_TCP_COMMANDS.SET_FREQ);
-    assert.strictEqual(received[0].readUInt32BE(1), 145000000);
-    assert.strictEqual(received[1].readUInt8(0), RTL_TCP_COMMANDS.SET_SAMPLE_RATE);
-    assert.strictEqual(received[1].readUInt32BE(1), 2048000);
+    const payload = Buffer.concat(received);
+    assert.ok(payload.length >= 10, `expected >= 10 command bytes, got ${payload.length}`);
+    assert.strictEqual(payload.readUInt8(0), RTL_TCP_COMMANDS.SET_FREQ);
+    assert.strictEqual(payload.readUInt32BE(1), 145000000);
+    assert.strictEqual(payload.readUInt8(5), RTL_TCP_COMMANDS.SET_SAMPLE_RATE);
+    assert.strictEqual(payload.readUInt32BE(6), 2048000);
 
     await client.disconnect();
     socket?.destroy();

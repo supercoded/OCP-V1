@@ -32,8 +32,9 @@
 - Architecture changes require spec updates.
 
 ## Current status
-- Phase 0–4 complete: scaffold, core, protocol, transport, Meshtastic bridge.
-- Phase 5+ pending: ONP/network layer, UI workspaces, security hardening, Baofeng/SDR support.
+- Phases 0–6 complete on Electron desktop + Flutter scaffold through persistence.
+- UI theme: gray/black INDI/ATA operator console (2026-07-14).
+- Next: Flutter build verification on Windows, hardware integration, plugin/security phases.
 
 ## Key files
 | File | Purpose |

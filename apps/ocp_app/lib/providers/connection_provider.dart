@@ -12,6 +12,29 @@ class NodeInfo {
   NodeInfo({required this.id, required this.name, required this.status});
 }
 
+/// RuView presence target (local meters + optional projected lat/lon).
+class SensingTarget {
+  final String id;
+  final int nodeId;
+  final double x;
+  final double y;
+  final double? z;
+  final double? rssi;
+  final int timestamp;
+  final String source;
+
+  const SensingTarget({
+    required this.id,
+    required this.nodeId,
+    required this.x,
+    required this.y,
+    this.z,
+    this.rssi,
+    required this.timestamp,
+    this.source = 'ruview',
+  });
+}
+
 class ConnectionOptions {
   final String? tcpHost;
   final int? tcpPort;
@@ -43,6 +66,7 @@ class ConnectionProvider extends ChangeNotifier {
   final StorageService? _storageService;
   StreamSubscription<Map<String, dynamic>>? _stateSubscription;
   StreamSubscription<Map<String, dynamic>>? _nodeSubscription;
+  StreamSubscription<Map<String, dynamic>>? _ruViewSubscription;
 
   // Recent connections (persisted)
   final List<RecentConnection> _recentConnections = [];
@@ -61,6 +85,7 @@ class ConnectionProvider extends ChangeNotifier {
   int? _ruViewPort;
   int _ruViewTargetCount = 0;
   String? _ruViewError;
+  final List<SensingTarget> _ruViewSensing = [];
 
   // RTL-SDR
   bool _rtlConnected = false;
@@ -87,6 +112,7 @@ class ConnectionProvider extends ChangeNotifier {
   int? get ruViewPort => _ruViewPort;
   int get ruViewTargetCount => _ruViewTargetCount;
   String? get ruViewError => _ruViewError;
+  List<SensingTarget> get ruViewSensing => List.unmodifiable(_ruViewSensing);
 
   // Getters — RTL-SDR
   bool get rtlConnected => _rtlConnected;
@@ -130,6 +156,39 @@ class ConnectionProvider extends ChangeNotifier {
       final name = event['shortName'] as String? ?? event['longName'] as String? ?? '';
       final status = event['role'] as String? ?? 'client';
       _upsertNode(NodeInfo(id: id, name: name, status: status));
+      notifyListeners();
+    });
+
+    _ruViewSubscription = _platformService.onRuViewSensing.listen((event) {
+      final nodeId = (event['nodeId'] as num?)?.toInt() ?? int.tryParse(event['nodeId']?.toString() ?? '') ?? 0;
+      final x = (event['x'] as num?)?.toDouble() ?? 0.0;
+      final y = (event['y'] as num?)?.toDouble() ?? 0.0;
+      final z = (event['z'] as num?)?.toDouble();
+      final rssi = (event['rssi'] as num?)?.toDouble();
+      final timestamp = (event['timestamp'] as num?)?.toInt() ?? DateTime.now().millisecondsSinceEpoch;
+      final source = event['source']?.toString() ?? 'ruview';
+      final id = 'rv-$nodeId';
+
+      final target = SensingTarget(
+        id: id,
+        nodeId: nodeId,
+        x: x,
+        y: y,
+        z: z,
+        rssi: rssi,
+        timestamp: timestamp,
+        source: source,
+      );
+      final idx = _ruViewSensing.indexWhere((t) => t.id == id);
+      if (idx >= 0) {
+        _ruViewSensing[idx] = target;
+      } else {
+        _ruViewSensing.add(target);
+      }
+      // Keep recent targets only
+      final cutoff = DateTime.now().millisecondsSinceEpoch - 15000;
+      _ruViewSensing.removeWhere((t) => t.timestamp < cutoff);
+      _ruViewTargetCount = _ruViewSensing.length;
       notifyListeners();
     });
   }
@@ -370,6 +429,8 @@ class ConnectionProvider extends ChangeNotifier {
       } catch (_) {}
     }
     _ruViewConnected = false;
+    _ruViewSensing.clear();
+    _ruViewTargetCount = 0;
     notifyListeners();
   }
 
@@ -400,6 +461,7 @@ class ConnectionProvider extends ChangeNotifier {
   void dispose() {
     _stateSubscription?.cancel();
     _nodeSubscription?.cancel();
+    _ruViewSubscription?.cancel();
     super.dispose();
   }
 }
