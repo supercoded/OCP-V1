@@ -1,7 +1,7 @@
 # OCP-V1 Project Status
 
 **Repo:** https://github.com/supercoded/OCP-V1  
-**Last updated:** 2026-07-12  
+**Last updated:** 2026-07-14  
 **Process:** BMAD-style via workspace `_bmad/`
 
 ## Stack
@@ -103,6 +103,12 @@
 # fail 0
 ```
 
+## UI Theme
+- **Electron + Flutter both on gray/black INDI/ATA palette** (as of 2026-07-14)
+- Palette: bg=#111111, panel=#1a1a1a, text=#c8c8c8, bright=#e8e8e8, dim=#888888, muted=#666666
+- Status colors only: green=#4caf50, amber=#d4a017, red=#c62828, cyan=#4fc3f7, blue=#42a5f5
+- No glow effects, no CRT scanlines — flat professional operator console
+
 ## Known issues / limitations
 - Desktop app cannot be visually verified on headless Pi; needs display.
 - RuView requires Docker simulator or real ESP32-S3/C6 hardware.
@@ -111,7 +117,7 @@
 - Flutter app not yet compiled/verified (no Flutter SDK on Pi).
 
 ## Pending / Next priorities
-1. Flutter build verification — get `flutter build linux` and `flutter build apk` compiling
+1. Flutter SDK install and build verification (`flutter build linux`, `flutter build apk`)
 2. Windows .ico + installer test on actual Windows
 3. Flutter mobile platform configs (iOS/Android permissions, navigation)
 4. Integration testing with real hardware

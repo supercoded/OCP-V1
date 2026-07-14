@@ -5,8 +5,7 @@
 build/
 pubspec.lock
 
-# Generated Linux build files
-linux/flutter/
+# Generated Linux build files (ephemeral is gitignored in linux/.gitignore)
 
 # Generated Android build files
 android/.gradle/
