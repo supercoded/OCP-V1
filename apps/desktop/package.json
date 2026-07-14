@@ -15,6 +15,8 @@
     "dist:win": "electron-builder --win",
     "dist:linux": "electron-builder --linux",
     "dist:dir": "electron-builder --dir",
+    "rebuild:native": "electron-rebuild -f -w serialport",
+    "postinstall": "electron-rebuild -f -w serialport || echo serialport rebuild skipped",
     "test": "vitest run"
   },
   "dependencies": {
@@ -36,9 +38,11 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.1.0",
-    "maplibre-gl": "^4.4.0"
+    "maplibre-gl": "^4.4.0",
+    "serialport": "^13.0.0"
   },
   "devDependencies": {
+    "@electron/rebuild": "^3.7.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",

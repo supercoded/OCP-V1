@@ -6,14 +6,25 @@ import type maplibregl from "maplibre-gl";
 
 export function MapPage() {
   const service = useOcpService();
+  const mapPrefs = service.preferences.pages.map ?? {};
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const cameraPrefsRef = useRef<any>(mapPrefs.camera);
+  const updatePagePreferencesRef = useRef(service.updatePagePreferences);
+  const mapMoveListenerAttachedRef = useRef(false);
+  const initialCameraAppliedRef = useRef(false);
   const [status, setStatus] = useState<string>("Ready");
   const [tileServerUrl, setTileServerUrl] = useState<string | undefined>(undefined);
   const [layers, setLayers] = useState<LayerVisibility>({
-    nodes: true,
-    sensing: true,
-    offlineTiles: false,
+    nodes: mapPrefs.layers?.nodes !== false,
+    sensing: mapPrefs.layers?.sensing !== false,
+    offlineTiles: !!mapPrefs.layers?.offlineTiles && !!service.mapPort,
   });
+  const [lastTileFile, setLastTileFile] = useState<string | undefined>(mapPrefs.tileFile);
+
+  useEffect(() => {
+    cameraPrefsRef.current = mapPrefs.camera;
+    updatePagePreferencesRef.current = service.updatePagePreferences;
+  }, [mapPrefs.camera, service.updatePagePreferences]);
 
   // Convert nodes to map markers
   const nodeMarkers: NodeMarker[] = useMemo(() => {
@@ -86,13 +97,17 @@ export function MapPage() {
       }
 
       const filePath = result.filePath!;
+      setLastTileFile(filePath);
+      void service.updatePagePreferences("map", { tileFile: filePath });
       setStatus(`Loading ${filePath.split("/").pop()}...`);
 
       const mapResult = await service.startMap(filePath);
       if (mapResult.ok && mapResult.port) {
         const url = `http://localhost:${mapResult.port}/style.json`;
         setTileServerUrl(url);
-        setLayers((prev) => ({ ...prev, offlineTiles: true }));
+        const nextLayers = { ...layers, offlineTiles: true };
+        setLayers(nextLayers);
+        void service.updatePagePreferences("map", { layers: nextLayers, tileFile: filePath });
         setStatus(`Offline tiles active on port ${mapResult.port}`);
       } else {
         setStatus(`Error: ${mapResult.error || "Failed to start tile server"}`);
@@ -100,15 +115,17 @@ export function MapPage() {
     } catch (e: any) {
       setStatus(`Exception: ${e.message}`);
     }
-  }, [service]);
+  }, [layers, service]);
 
   // Handle stop tiles
   const handleStopTiles = useCallback(async () => {
     await service.stopMap();
     setTileServerUrl(undefined);
-    setLayers((prev) => ({ ...prev, offlineTiles: false }));
+    const nextLayers = { ...layers, offlineTiles: false };
+    setLayers(nextLayers);
+    void service.updatePagePreferences("map", { layers: nextLayers });
     setStatus("Offline tiles stopped");
-  }, [service]);
+  }, [layers, service]);
 
   // Determine tile server URL based on layer toggle
   const activeTileUrl = layers.offlineTiles ? tileServerUrl : undefined;
@@ -118,8 +135,9 @@ export function MapPage() {
     const map = mapRef.current;
     if (!map) return;
 
-    // Find own node (typically node 0 or the first node with position)
-    const ownNode = service.state.nodes.find((n: any) => typeof n.lat === "number" && typeof n.lon === "number");
+    const ownNode = service.state.nodes.find((n: any) =>
+      n.id === service.state.localNodeId && typeof n.lat === "number" && typeof n.lon === "number"
+    );
     if (ownNode) {
       map.flyTo({
         center: [ownNode.lon, ownNode.lat],
@@ -128,7 +146,16 @@ export function MapPage() {
       });
       setStatus(`Centered on ${ownNode.name || `Node ${ownNode.id}`}`);
     } else {
-      // No node with position — center on US
+      const fallbackNode = service.state.nodes.find((n: any) => typeof n.lat === "number" && typeof n.lon === "number");
+      if (fallbackNode) {
+        map.flyTo({
+          center: [fallbackNode.lon, fallbackNode.lat],
+          zoom: 14,
+          duration: 1500,
+        });
+        setStatus(`No self GPS — centered on ${fallbackNode.name || `Node ${fallbackNode.id}`}`);
+        return;
+      }
       map.flyTo({
         center: [-98.5, 39.5],
         zoom: 4,
@@ -136,7 +163,7 @@ export function MapPage() {
       });
       setStatus("No node position — centered on default");
     }
-  }, [service.state.nodes]);
+  }, [service.state.localNodeId, service.state.nodes]);
 
   // Handle zoom
   const handleZoomIn = useCallback(() => {
@@ -150,18 +177,45 @@ export function MapPage() {
   // Handle map ready
   const handleMapReady = useCallback((map: maplibregl.Map) => {
     mapRef.current = map;
+    const camera = cameraPrefsRef.current;
+    if (!initialCameraAppliedRef.current && Array.isArray(camera?.center) && typeof camera?.zoom === "number") {
+      initialCameraAppliedRef.current = true;
+      map.jumpTo({ center: camera.center, zoom: camera.zoom });
+    }
+    if (mapMoveListenerAttachedRef.current) return;
+    mapMoveListenerAttachedRef.current = true;
+    map.on("moveend", () => {
+      const center = map.getCenter();
+      void updatePagePreferencesRef.current("map", {
+        camera: {
+          center: [center.lng, center.lat],
+          zoom: map.getZoom(),
+        },
+      });
+    });
   }, []);
 
   // Update status from service state
   useEffect(() => {
-    if (tileServerUrl) {
+    if (tileServerUrl || service.mapPort) {
       setStatus(`Offline tiles active · ${service.state.nodeCount} nodes · ${service.ruViewSensing.length} targets`);
+    } else if (lastTileFile) {
+      setStatus(`Last tile file: ${lastTileFile.split(/[\\/]/).pop()} · load tiles to reactivate`);
     } else if (service.state.connected) {
       setStatus(`Online · ${service.state.nodeCount} nodes · ${service.ruViewSensing.length} targets`);
     } else {
       setStatus("Ready — load tiles or connect for live data");
     }
-  }, [tileServerUrl, service.state.connected, service.state.nodeCount, service.ruViewSensing.length]);
+  }, [lastTileFile, tileServerUrl, service.mapPort, service.state.connected, service.state.nodeCount, service.ruViewSensing.length]);
+
+  const handleLayerChange = useCallback((nextLayers: LayerVisibility) => {
+    const normalized = {
+      ...nextLayers,
+      offlineTiles: !!tileServerUrl && nextLayers.offlineTiles,
+    };
+    setLayers(normalized);
+    void service.updatePagePreferences("map", { layers: normalized });
+  }, [service, tileServerUrl]);
 
   return (
     <div className="absolute inset-0 flex flex-col">
@@ -210,12 +264,13 @@ export function MapPage() {
         {/* Controls sidebar */}
         <MapControls
           layers={layers}
-          onLayerChange={setLayers}
+          onLayerChange={handleLayerChange}
           onLoadFile={tileServerUrl ? handleStopTiles : handleLoadFile}
           onCenterSelf={handleCenterSelf}
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
           tileServerActive={!!tileServerUrl}
+          canToggleOfflineTiles={!!tileServerUrl}
           nodeCount={nodeMarkers.length}
           sensingCount={sensingTargets.length}
           status={undefined}

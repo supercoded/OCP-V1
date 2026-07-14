@@ -138,7 +138,7 @@ export function SettingsPage() {
                 type="password"
                 value={newPin}
                 onChange={(e) => setNewPin(e.target.value)}
-                placeholder="New PIN (optional)"
+                placeholder="New PIN (min 4)"
                 className="w-full bg-ocp-bg border border-ocp-border px-2 py-1.5 text-xs outline-none focus:border-ocp-cyan"
               />
               <div className="flex flex-wrap gap-2">

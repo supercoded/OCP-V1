@@ -34,10 +34,15 @@ function nodeLabel(id: string | number, nodes: any[]): string {
 }
 
 export function MessagingPage() {
-  const { state, messages, sendMessage, sendError } = useOcpService();
-  const [activeChannel, setActiveChannel] = useState<number>(0);
-  const [draft, setDraft] = useState("");
-  const [destNode, setDestNode] = useState<string>(""); // empty = broadcast
+  const service = useOcpService();
+  const { state, messages, sendMessage, sendError } = service;
+  const messagingPrefs = service.preferences.pages.messaging ?? {};
+  const [activeChannel, setActiveChannel] = useState<number>(
+    typeof messagingPrefs.activeChannel === "number" ? messagingPrefs.activeChannel : 0
+  );
+  const [draft, setDraft] = useState(messagingPrefs.draft ?? "");
+  const [destNode, setDestNode] = useState<string>(messagingPrefs.destNode ?? ""); // empty = broadcast
+  const [readThrough, setReadThrough] = useState<Record<string, number>>(messagingPrefs.readThrough ?? {});
   const [localError, setLocalError] = useState<string | undefined>(undefined);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -53,6 +58,17 @@ export function MessagingPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [thread.length]);
+
+  useEffect(() => {
+    const latestInbound = (messages as Message[])
+      .filter((m) => m.channel === activeChannel && !m.outgoing)
+      .reduce((latest, m) => Math.max(latest, m.timestamp ?? 0), readThrough[String(activeChannel)] ?? 0);
+    if (latestInbound > (readThrough[String(activeChannel)] ?? 0)) {
+      const next = { ...readThrough, [String(activeChannel)]: latestInbound };
+      setReadThrough(next);
+      void service.updatePagePreferences("messaging", { readThrough: next });
+    }
+  }, [activeChannel, messages, readThrough, service]);
 
   // Clear local error after a timeout
   useEffect(() => {
@@ -78,11 +94,12 @@ export function MessagingPage() {
 
     if (result.ok) {
       setDraft("");
+      void service.updatePagePreferences("messaging", { draft: "" });
       setLocalError(undefined);
     } else {
       setLocalError(result.error || "Send failed");
     }
-  }, [draft, activeChannel, destNode, connected, sendMessage]);
+  }, [draft, activeChannel, destNode, connected, sendMessage, service]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -105,16 +122,21 @@ export function MessagingPage() {
         </div>
         <div className="flex-1 overflow-auto">
           {CHANNELS.map((ch) => {
-            const unread = (messages as Message[]).filter(
-              (m) => m.channel === ch.id && !m.outgoing
-            ).length;
+            const unread = ch.id === activeChannel
+              ? 0
+              : (messages as Message[]).filter(
+                  (m) => m.channel === ch.id && !m.outgoing && (m.timestamp ?? 0) > (readThrough[String(ch.id)] ?? 0)
+                ).length;
             const lastMsg = (messages as Message[])
               .filter((m) => m.channel === ch.id)
               .slice(-1)[0];
             return (
               <button
                 key={ch.id}
-                onClick={() => setActiveChannel(ch.id)}
+                onClick={() => {
+                  setActiveChannel(ch.id);
+                  void service.updatePagePreferences("messaging", { activeChannel: ch.id });
+                }}
                 className={[
                   "w-full text-left px-4 py-3 border-b border-ocp-border transition-colors",
                   activeChannel === ch.id
@@ -151,7 +173,10 @@ export function MessagingPage() {
           <input
             type="text"
             value={destNode}
-            onChange={(e) => setDestNode(e.target.value)}
+            onChange={(e) => {
+              setDestNode(e.target.value);
+              void service.updatePagePreferences("messaging", { destNode: e.target.value });
+            }}
             placeholder="Broadcast (empty)"
             className="w-full px-2 py-1.5 rounded-md border border-ocp-border bg-ocp-bg text-ocp-text text-xs placeholder:text-ocp-dim/50 focus:outline-none focus:border-ocp-bright transition-colors"
           />
@@ -241,7 +266,10 @@ export function MessagingPage() {
           <input
             type="text"
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              void service.updatePagePreferences("messaging", { draft: e.target.value });
+            }}
             onKeyDown={handleKeyDown}
             disabled={!connected}
             placeholder={

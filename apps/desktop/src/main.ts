@@ -18,7 +18,7 @@ async function createWindow() {
     backgroundColor: "#111111",
     icon: path.join(__dirname, "../build/icon.png"),
     webPreferences: {
-      preload: path.join(__dirname, "../preload/preload.js"),
+      preload: path.join(__dirname, "../preload/preload.mjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,

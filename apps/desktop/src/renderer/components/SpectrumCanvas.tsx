@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface SpectrumCanvasProps {
   magnitudes: Float32Array;
@@ -32,6 +32,23 @@ export function SpectrumCanvas({
   className = "",
 }: SpectrumCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const width = Math.floor(entry.contentRect.width);
+      const height = Math.floor(entry.contentRect.height);
+      setSize((prev) =>
+        prev.width === width && prev.height === height ? prev : { width, height }
+      );
+    });
+    ro.observe(canvas);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -39,14 +56,16 @@ export function SpectrumCanvas({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
-    canvas.width = Math.floor(rect.width * dpr);
-    canvas.height = Math.floor(rect.height * dpr);
-    ctx.scale(dpr, dpr);
+    const width = size.width || Math.floor(rect.width);
+    const height = size.height || Math.floor(rect.height);
+    if (width < 1 || height < 1) return;
 
-    const width = rect.width;
-    const height = rect.height;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
     const len = magnitudes.length;
 
     ctx.clearRect(0, 0, width, height);
@@ -138,7 +157,7 @@ export function SpectrumCanvas({
     ctx.strokeStyle = lineColor;
     ctx.lineWidth = 2;
     ctx.stroke();
-  }, [magnitudes, minDb, maxDb, lineColor, fillColor, gridColor, peakHold, peakHoldMagnitudes, showVfo, vfoCenter, vfoLeft, vfoRight]);
+  }, [magnitudes, minDb, maxDb, lineColor, fillColor, gridColor, peakHold, peakHoldMagnitudes, showVfo, vfoCenter, vfoLeft, vfoRight, size.width, size.height]);
 
   return <canvas ref={canvasRef} className={`w-full h-full ${className}`} />;
 }

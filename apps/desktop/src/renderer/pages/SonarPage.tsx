@@ -81,28 +81,29 @@ function bearingDeg(lat1: number, lon1: number, lat2: number, lon2: number): num
 export function SonarPage() {
 
   const service = useOcpService();
+  const sonarPrefs = service.preferences.pages.sonar ?? {};
 
-  const [sweepRpm, setSweepRpm] = useState(12);
+  const [sweepRpm, setSweepRpm] = useState(Number(sonarPrefs.sweepRpm) || 12);
 
-  const [maxRangeMeters, setMaxRangeMeters] = useState(100);
+  const [maxRangeMeters, setMaxRangeMeters] = useState(Number(sonarPrefs.maxRangeMeters) || 100);
 
-  const [audioEnabled, setAudioEnabled] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(!!sonarPrefs.audioEnabled);
 
-  const [mockBlips, setMockBlips] = useState(true);
+  const [mockBlips, setMockBlips] = useState(sonarPrefs.mockBlips !== false);
 
   const [filters, setFilters] = useState<Record<Blip["type"], boolean>>({
 
-    meshtastic: true,
+    meshtastic: sonarPrefs.filters?.meshtastic !== false,
 
-    ruview: true,
+    ruview: sonarPrefs.filters?.ruview !== false,
 
-    sdr: true,
+    sdr: false,
 
-    baofeng: true,
+    baofeng: false,
 
-    wifi: true,
+    wifi: false,
 
-    mock: true,
+    mock: sonarPrefs.filters?.mock !== false,
 
   });
 
@@ -306,9 +307,13 @@ export function SonarPage() {
 
   const onToggleFilter = useCallback((key: string) => {
 
-    setFilters((f) => ({ ...f, [key as Blip["type"]]: !f[key as Blip["type"]] }));
+    setFilters((f) => {
+      const next = { ...f, [key as Blip["type"]]: !f[key as Blip["type"]] };
+      void service.updatePagePreferences("sonar", { filters: next });
+      return next;
+    });
 
-  }, []);
+  }, [service]);
 
 
 
@@ -354,19 +359,31 @@ export function SonarPage() {
 
           sweepRpm={sweepRpm}
 
-          onSweepRpmChange={setSweepRpm}
+          onSweepRpmChange={(value) => {
+            setSweepRpm(value);
+            void service.updatePagePreferences("sonar", { sweepRpm: value });
+          }}
 
           maxRangeMeters={maxRangeMeters}
 
-          onMaxRangeChange={setMaxRangeMeters}
+          onMaxRangeChange={(value) => {
+            setMaxRangeMeters(value);
+            void service.updatePagePreferences("sonar", { maxRangeMeters: value });
+          }}
 
           audioEnabled={audioEnabled}
 
-          onAudioEnabledChange={setAudioEnabled}
+          onAudioEnabledChange={(value) => {
+            setAudioEnabled(value);
+            void service.updatePagePreferences("sonar", { audioEnabled: value });
+          }}
 
           mockBlips={mockBlips}
 
-          onMockBlipsChange={setMockBlips}
+          onMockBlipsChange={(value) => {
+            setMockBlips(value);
+            void service.updatePagePreferences("sonar", { mockBlips: value });
+          }}
 
         />
 

@@ -20,8 +20,12 @@ function nodeHex(id: number): string {
 }
 
 export function NetworkPage() {
-  const { state } = useOcpService();
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const service = useOcpService();
+  const { state } = service;
+  const networkPrefs = service.preferences.pages.network ?? {};
+  const [selectedId, setSelectedId] = useState<number | null>(
+    typeof networkPrefs.selectedId === "number" ? networkPrefs.selectedId : null
+  );
 
   const nodes = useMemo(
     () => [...state.nodes].sort((a, b) => (b.lastHeard ?? 0) - (a.lastHeard ?? 0)),
@@ -48,7 +52,7 @@ export function NetworkPage() {
             }
           />
           <span className="text-ocp-dim">{state.nodeCount} nodes</span>
-          <span className="text-ocp-muted">routes: none</span>
+          <span className="text-ocp-muted">routes: not available yet</span>
         </div>
       </div>
 
@@ -89,7 +93,10 @@ export function NetworkPage() {
                     return (
                       <tr
                         key={n.id}
-                        onClick={() => setSelectedId(n.id)}
+                        onClick={() => {
+                          setSelectedId(n.id);
+                          void service.updatePagePreferences("network", { selectedId: n.id });
+                        }}
                         className={[
                           "border-b border-ocp-border/60 cursor-pointer transition-colors",
                           isSelected

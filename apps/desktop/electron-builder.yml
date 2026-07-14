@@ -4,6 +4,7 @@ copyright: Copyright © 2026 Supercoded
 asar: true
 asarUnpack:
   - node_modules/serialport/**/*
+  - node_modules/@serialport/**/*
   - node_modules/@abandonware/noble/**/*
 files:
   - out/**/*

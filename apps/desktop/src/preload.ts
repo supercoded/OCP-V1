@@ -13,6 +13,10 @@ const ocpAPI = {
   connect: (options: any) => ipcRenderer.invoke("ocp:connect", options),
   disconnect: () => ipcRenderer.invoke("ocp:disconnect"),
   getState: () => ipcRenderer.invoke("ocp:state"),
+  getPreferences: () => ipcRenderer.invoke("ocp:prefs:get"),
+  updatePreferences: (patch: any) => ipcRenderer.invoke("ocp:prefs:update", patch),
+  updatePagePreferences: (page: string, patch: any) =>
+    ipcRenderer.invoke("ocp:prefs:updatePage", page, patch),
 
   startRuView: (cfg: { host?: string; wsPort?: number }) => ipcRenderer.invoke("ocp:ruview:start", cfg),
   stopRuView: () => ipcRenderer.invoke("ocp:ruview:stop"),
@@ -77,10 +81,21 @@ const ocpAPI = {
   baofengDisconnect: () => ipcRenderer.invoke("baofeng:disconnect"),
   baofengReadChannels: () => ipcRenderer.invoke("baofeng:readChannels"),
   baofengWriteChannels: (channels: any[]) => ipcRenderer.invoke("baofeng:writeChannels", channels),
+  baofengListPorts: () => ipcRenderer.invoke("baofeng:listPorts"),
   onBaofengProgress: (cb: (info: { current: number; total: number; phase: string }) => void) => {
     const listener = (_evt: Electron.IpcRendererEvent, info: any) => cb(info);
     ipcRenderer.on("baofeng:progress", listener);
     return () => ipcRenderer.off("baofeng:progress", listener);
+  },
+  onBaofengPorts: (cb: (info: { ports: any[]; best?: any; added?: string[] }) => void) => {
+    const listener = (_evt: Electron.IpcRendererEvent, info: any) => cb(info);
+    ipcRenderer.on("baofeng:ports", listener);
+    return () => ipcRenderer.off("baofeng:ports", listener);
+  },
+  onBaofengConnected: (cb: (info: { portName: string }) => void) => {
+    const listener = (_evt: Electron.IpcRendererEvent, info: any) => cb(info);
+    ipcRenderer.on("baofeng:connected", listener);
+    return () => ipcRenderer.off("baofeng:connected", listener);
   },
   // Messaging APIs
   sendMessage: (params: { text: string; channel?: number; destinationNodeId?: number }) =>
@@ -107,6 +122,17 @@ const ocpAPI = {
   changePin: (params: { currentPin: string; newPin: string }) =>
     ipcRenderer.invoke("ocp:security:changePin", params),
   clearPin: (pin: string) => ipcRenderer.invoke("ocp:security:clearPin", pin),
+
+  // Online SDR receivers (Spectrum)
+  listOnlineReceivers: () => ipcRenderer.invoke("spectrum:online:list"),
+  probeOnlineReceivers: () => ipcRenderer.invoke("spectrum:online:probe"),
+  toggleOnlineFavorite: (id: string) => ipcRenderer.invoke("spectrum:online:toggleFavorite", id),
+  openOnlineExternal: (url: string) => ipcRenderer.invoke("spectrum:online:openExternal", url),
+  openOnlineSession: (params: { receiverId: string; mobile?: boolean; bounds: Electron.Rectangle }) =>
+    ipcRenderer.invoke("spectrum:online:session:open", params),
+  resizeOnlineSession: (bounds: Electron.Rectangle) =>
+    ipcRenderer.invoke("spectrum:online:session:resize", bounds),
+  closeOnlineSession: () => ipcRenderer.invoke("spectrum:online:session:close"),
 };
 
 contextBridge.exposeInMainWorld("ocp", ocpAPI);

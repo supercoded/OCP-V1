@@ -7,6 +7,7 @@
 
 import { BaofengProtocol, BAOFENG_BAUD_RATE, BAOFENG_CHANNEL_COUNT, BAOFENG_CHANNEL_BLOCK_SIZE, BAOFENG_READ_BLOCK_SIZE, encodeChannelBlock, decodeChannelBlock, encodeChannelName, decodeChannelName, } from "./baofengProtocol.js";
 import { createDefaultChannels } from "./channelModel.js";
+import { createBridgeIo, shouldUseSerialBridge } from "./serialBridge.js";
 
 /**
  * @typedef {Object} BaofengTransportOptions
@@ -36,7 +37,10 @@ export class BaofengTransport {
   onProgress = null;
 
   /** @type {Function|null} */
-  io = null; // Injected serial IO for testing
+  io = null; // Injected serial IO for testing / Electron bridge
+
+  /** @type {boolean} */
+  #usingBridge = false;
 
   /**
    * @param {BaofengTransportOptions} options
@@ -53,16 +57,46 @@ export class BaofengTransport {
 
   /**
    * Connect to the Baofeng radio via serial port.
+   * @param {{ verify?: boolean }} [opts] - When verify (default true), run ident handshake.
    */
-  async connect() {
+  async connect(opts = {}) {
+    const verify = opts.verify !== false;
+    const timeoutMs = this.options.timeout ?? 3000;
+
     if (this.io) {
-      // Use injected IO (for testing)
       await this.io.open({ portName: this.options.portName, baudRate: this.options.baudRate });
       this.connected = true;
+      if (verify) {
+        try {
+          await this.identify();
+        } catch (err) {
+          await this.disconnect();
+          throw err;
+        }
+      }
       return;
     }
 
-    // Dynamic import for serialport (optional dependency)
+    // Under Electron, use system-Node serial bridge (native bindings match Node, not Electron ABI).
+    if (shouldUseSerialBridge()) {
+      this.io = createBridgeIo();
+      this.#usingBridge = true;
+      await this.io.open({
+        portName: this.options.portName,
+        baudRate: this.options.baudRate ?? BAOFENG_BAUD_RATE,
+      });
+      this.connected = true;
+      if (verify) {
+        try {
+          await this.identify();
+        } catch (err) {
+          await this.disconnect();
+          throw err;
+        }
+      }
+      return;
+    }
+
     let SerialPort;
     try {
       const mod = await import("serialport");
@@ -88,12 +122,27 @@ export class BaofengTransport {
     });
 
     this.connected = true;
+
+    if (verify) {
+      try {
+        await this.identify();
+      } catch (err) {
+        await this.disconnect();
+        throw err;
+      }
+    }
   }
 
   /**
    * Disconnect from the radio.
    */
   async disconnect() {
+    if (this.io) {
+      try {
+        await this.io.close?.();
+      } catch {}
+      if (this.#usingBridge) this.io = null;
+    }
     if (this.port) {
       await new Promise((resolve) => {
         this.port.close(() => resolve());
@@ -243,9 +292,14 @@ export class BaofengTransport {
    */
   async #sendAndReceive(data, expectedLength) {
     if (this.io) {
-      // Test mode: use injected IO
       await this.io.write(data);
-      return this.io.read(expectedLength);
+      const timeoutMs = this.options.timeout ?? 3000;
+      const raw = await this.io.read(expectedLength, timeoutMs);
+      const buf = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
+      if (buf.length < expectedLength) {
+        throw new Error(`Serial read timeout after ${timeoutMs}ms`);
+      }
+      return buf.subarray(0, expectedLength);
     }
 
     if (!this.port) throw new Error("Serial port not initialized");

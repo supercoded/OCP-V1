@@ -41,7 +41,7 @@ export function BookmarksPanel({
   onTune,
   centerFreq,
 }: {
-  onTune: (freqHz: number) => void;
+  onTune: (freqHz: number, bookmark?: Bookmark) => void;
   centerFreq?: number;
 }) {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>(loadBookmarks);
@@ -124,7 +124,7 @@ export function BookmarksPanel({
           <div
             key={bm.id}
             className="flex items-center gap-2 px-2 py-1 rounded hover:bg-ocp-panel-2 cursor-pointer group transition-colors"
-            onClick={() => onTune(bm.frequency)}
+                    onClick={() => onTune(bm.frequency, bm)}
           >
             <div className="flex-1 min-w-0">
               <div className="text-xs text-ocp-bright font-mono truncate">{bm.label}</div>

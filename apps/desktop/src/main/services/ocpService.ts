@@ -1,4 +1,4 @@
-import { app, ipcMain, type IpcMainInvokeEvent, BrowserWindow } from "electron";
+import { app, ipcMain, shell, type IpcMainInvokeEvent, BrowserWindow, type Rectangle } from "electron";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { NetworkState } from "@ocp/network";
@@ -8,11 +8,21 @@ import {
 } from "@ocp/offline-core";
 import { MeshtasticTransport } from "@ocp/bridge-meshtastic";
 import { RuViewClient } from "@ocp/tools-ruview";
-import { RtlTcpClient, SpectrumProcessor } from "@ocp/tools-rtlsdr";
+import {
+  RtlTcpClient,
+  SpectrumProcessor,
+  CURATED_ONLINE_RECEIVERS,
+  mergeReceiverFavorites,
+  probeAllReceivers,
+  resolveListenUrl,
+} from "@ocp/tools-rtlsdr";
 import { PmtilesServer } from "@ocp/maps";
-import { BaofengTransport } from "@ocp/bridge-baofeng";
+import { BaofengTransport, listSerialPorts, pickBestProgrammingPort } from "@ocp/bridge-baofeng";
 import { PluginHost, PERMISSIONS, CAPABILITIES } from "@ocp/plugin-api";
 import { createDiagnosticsPlugin } from "@ocp/plugin-example";
+import { RemoteSdrSession } from "./remoteSdrSession.js";
+import { OnlineReceiversStore } from "./onlineReceiversStore.js";
+import { AppPreferencesStore } from "./appPreferencesStore.js";
 
 const MESSAGE_HISTORY_MAX = 500;
 const UNLOCK_MAX_FAILURES = 5;
@@ -70,6 +80,13 @@ export interface OcpState {
   mapPort?: number;
   baofengConnected: boolean;
   baofengPortName?: string;
+  serialPorts?: {
+    path: string;
+    manufacturer?: string;
+    vendorId?: string;
+    productId?: string;
+    friendlyName?: string;
+  }[];
   plugins?: PluginSummary[];
   security?: SecurityState;
 }
@@ -129,6 +146,14 @@ export class OcpService {
   baofeng?: BaofengTransport;
   baofengConnected: boolean = false;
   baofengPortName?: string;
+  serialPorts: any[] = [];
+  serialPortWatch?: ReturnType<typeof setInterval>;
+  #serialPortsKnown = new Set<string>();
+
+  onlineReceiversStore!: OnlineReceiversStore;
+  appPreferencesStore!: AppPreferencesStore;
+  remoteSdrSession = new RemoteSdrSession();
+  #onlineReceiversCache: any[] = [];
 
   pinVault!: PinVault;
   offlineStore!: JsonFileOfflineStore;
@@ -154,11 +179,16 @@ export class OcpService {
       dbPath: join(userData, "ocp-offline-db.json"),
       encryptAtRest: true,
     });
+    this.onlineReceiversStore = new OnlineReceiversStore(userData);
+    this.appPreferencesStore = new AppPreferencesStore(userData);
+    void this.onlineReceiversStore.load().then(() => this.#refreshOnlineReceiversCache());
+    void this.appPreferencesStore.load();
 
     this.#registerIpc();
     this.#broadcastLoop();
     void this.#initSecurity();
     void this.#initPlugins();
+    this.#startSerialPortWatch();
 
     this.networkState.on("packetRelayed", () => this.#emit());
     this.networkState.on("packetReplay", () => this.#emit());
@@ -169,12 +199,45 @@ export class OcpService {
 
   stop() {
     if (this.interval) clearInterval(this.interval);
+    if (this.serialPortWatch) clearInterval(this.serialPortWatch);
     this.transport?.disconnect();
     this.ruview?.stop();
+    void this.baofeng?.disconnect?.();
     this.#stopRtl();
+    this.remoteSdrSession.close();
   }
 
   #registerIpc() {
+    ipcMain.handle("ocp:prefs:get", async () => {
+      try {
+        const preferences = await this.appPreferencesStore.load();
+        return { ok: true, preferences };
+      } catch (err: any) {
+        return { ok: false, error: err.message };
+      }
+    });
+
+    ipcMain.handle("ocp:prefs:update", async (_evt: IpcMainInvokeEvent, patch: any) => {
+      try {
+        const preferences = await this.appPreferencesStore.update(patch ?? {});
+        return { ok: true, preferences };
+      } catch (err: any) {
+        return { ok: false, error: err.message };
+      }
+    });
+
+    ipcMain.handle(
+      "ocp:prefs:updatePage",
+      async (_evt: IpcMainInvokeEvent, page: any, patch: any) => {
+        try {
+          const preferences = await this.appPreferencesStore.updatePage(page, patch ?? {});
+          return { ok: true, preferences };
+        } catch (err: any) {
+          return { ok: false, error: err.message };
+        }
+      }
+    );
+
     ipcMain.handle("ocp:connect", async (_evt: IpcMainInvokeEvent, options: any) => {
       try {
         this.#assertUnlocked();
@@ -519,24 +582,21 @@ export class OcpService {
       }
     });
 
+    ipcMain.handle("baofeng:listPorts", async () => {
+      try {
+        this.#assertUnlocked();
+        const ports = await listSerialPorts();
+        this.serialPorts = ports;
+        return { ok: true, ports, best: pickBestProgrammingPort(ports) };
+      } catch (err: any) {
+        return { ok: false, error: err.message, ports: [] };
+      }
+    });
+
     ipcMain.handle("baofeng:connect", async (_evt: IpcMainInvokeEvent, portName: string) => {
       try {
         this.#assertUnlocked();
-        if (this.baofeng) {
-          await this.baofeng.disconnect();
-        }
-        const transport = new BaofengTransport({ portName, baudRate: 9600 });
-        transport.onProgress = (info: { current: number; total: number; phase: string }) => {
-          BrowserWindow.getAllWindows().forEach((win) => {
-            win.webContents.send("baofeng:progress", info);
-          });
-        };
-        await transport.connect();
-        this.baofeng = transport;
-        this.baofengConnected = true;
-        this.baofengPortName = portName;
-        this.#emit();
-        return { ok: true };
+        return await this.#connectBaofeng(portName);
       } catch (err: any) {
         return { ok: false, error: err.message };
       }
@@ -725,11 +785,183 @@ export class OcpService {
         return { ok: false, error: err.message };
       }
     });
+
+    ipcMain.handle("spectrum:online:list", async () => {
+      try {
+        if (!this.#onlineReceiversCache.length) {
+          await this.#refreshOnlineReceiversCache();
+        }
+        return {
+          ok: true,
+          receivers: this.#onlineReceiversCache,
+          lastReceiverId: this.onlineReceiversStore.prefs.lastReceiverId,
+        };
+      } catch (err: any) {
+        return { ok: false, error: err.message, receivers: [] };
+      }
+    });
+
+    ipcMain.handle("spectrum:online:probe", async () => {
+      try {
+        const merged = mergeReceiverFavorites(
+          CURATED_ONLINE_RECEIVERS,
+          this.onlineReceiversStore.prefs.favoriteIds
+        );
+        this.#onlineReceiversCache = await probeAllReceivers(merged);
+        return { ok: true, receivers: this.#onlineReceiversCache };
+      } catch (err: any) {
+        return { ok: false, error: err.message };
+      }
+    });
+
+    ipcMain.handle("spectrum:online:toggleFavorite", async (_evt, id: string) => {
+      try {
+        const favoriteIds = await this.onlineReceiversStore.toggleFavorite(id);
+        await this.#refreshOnlineReceiversCache();
+        return { ok: true, favoriteIds, receivers: this.#onlineReceiversCache };
+      } catch (err: any) {
+        return { ok: false, error: err.message };
+      }
+    });
+
+    ipcMain.handle("spectrum:online:openExternal", async (_evt, url: string) => {
+      try {
+        if (!url) return { ok: false, error: "URL required" };
+        await shell.openExternal(url);
+        return { ok: true };
+      } catch (err: any) {
+        return { ok: false, error: err.message };
+      }
+    });
+
+    ipcMain.handle(
+      "spectrum:online:session:open",
+      async (evt, params: { receiverId: string; mobile?: boolean; bounds: Rectangle }) => {
+        try {
+          const receiver = CURATED_ONLINE_RECEIVERS.find((r) => r.id === params.receiverId);
+          if (!receiver) return { ok: false, error: "Receiver not found" };
+          if (receiver.type === "directory" || receiver.embeddable === false) {
+            await shell.openExternal(receiver.url);
+            return { ok: true, external: true };
+          }
+          const url = resolveListenUrl(receiver, { mobile: params.mobile });
+          const win = BrowserWindow.fromWebContents(evt.sender);
+          if (!win) return { ok: false, error: "No host window" };
+          const result = await this.remoteSdrSession.open(win, url, params.bounds);
+          if (result.ok) {
+            await this.onlineReceiversStore.setLastReceiver(receiver.id);
+          }
+          return { ...result, url, receiverId: receiver.id, name: receiver.name };
+        } catch (err: any) {
+          return { ok: false, error: err.message };
+        }
+      }
+    );
+
+    ipcMain.handle("spectrum:online:session:resize", (_evt, bounds: Rectangle) => {
+      try {
+        this.remoteSdrSession.setBounds(bounds);
+        return { ok: true };
+      } catch (err: any) {
+        return { ok: false, error: err.message };
+      }
+    });
+
+    ipcMain.handle("spectrum:online:session:close", () => {
+      try {
+        this.remoteSdrSession.close();
+        return { ok: true };
+      } catch (err: any) {
+        return { ok: false, error: err.message };
+      }
+    });
+  }
+
+  async #refreshOnlineReceiversCache() {
+    const merged = mergeReceiverFavorites(
+      CURATED_ONLINE_RECEIVERS,
+      this.onlineReceiversStore.prefs.favoriteIds
+    );
+    const prev = new Map(this.#onlineReceiversCache.map((r) => [r.id, r.status]));
+    this.#onlineReceiversCache = merged.map((r) => ({
+      ...r,
+      status: prev.get(r.id) ?? r.status ?? "unknown",
+    }));
   }
 
   #assertUnlocked() {
     if (this.pinConfigured && !this.securityUnlocked) {
       throw new Error("App is locked — unlock with PIN first");
+    }
+  }
+
+  async #connectBaofeng(portName: string) {
+    if (!portName) {
+      return { ok: false, error: "Serial port name required" };
+    }
+    try {
+      if (this.baofeng) {
+        try {
+          await this.baofeng.disconnect();
+        } catch {}
+        this.baofeng = undefined;
+        this.baofengConnected = false;
+        this.baofengPortName = undefined;
+      }
+      const transport = new BaofengTransport({ portName, baudRate: 9600 });
+      transport.onProgress = (info: { current: number; total: number; phase: string }) => {
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send("baofeng:progress", info);
+        });
+      };
+      await transport.connect({ verify: true });
+      this.baofeng = transport;
+      this.baofengConnected = true;
+      this.baofengPortName = portName;
+      this.#emit();
+      BrowserWindow.getAllWindows().forEach((win) => {
+        win.webContents.send("baofeng:connected", { portName });
+      });
+      return { ok: true, portName };
+    } catch (err: any) {
+      this.baofeng = undefined;
+      this.baofengConnected = false;
+      this.baofengPortName = undefined;
+      this.#emit();
+      return { ok: false, error: err?.message ?? String(err) };
+    }
+  }
+
+  #startSerialPortWatch() {
+    void this.#refreshSerialPorts({ autoConnect: false });
+    this.serialPortWatch = setInterval(() => {
+      void this.#refreshSerialPorts({ autoConnect: true });
+    }, 2000);
+  }
+
+  async #refreshSerialPorts(_opts: { autoConnect: boolean }) {
+    if (this.pinConfigured && !this.securityUnlocked) return;
+    try {
+      const ports = await listSerialPorts();
+      this.serialPorts = ports;
+
+      const paths = new Set(ports.map((p) => p.path));
+      const added: string[] = [];
+      for (const path of paths) {
+        if (!this.#serialPortsKnown.has(path)) added.push(path);
+      }
+      this.#serialPortsKnown = paths;
+
+      BrowserWindow.getAllWindows().forEach((win) => {
+        win.webContents.send("baofeng:ports", {
+          ports,
+          best: pickBestProgrammingPort(ports),
+          added,
+        });
+      });
+      this.#emit();
+    } catch {
+      // serialport may be missing until rebuild finishes
     }
   }
 
@@ -873,6 +1105,7 @@ export class OcpService {
       mapPort: this.mapPort,
       baofengConnected: this.baofengConnected,
       baofengPortName: this.baofengPortName,
+      serialPorts: this.serialPorts,
       security: {
         pinConfigured: this.pinConfigured,
         unlocked: this.securityUnlocked,

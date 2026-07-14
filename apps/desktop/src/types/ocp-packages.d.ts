@@ -93,6 +93,12 @@ declare module "@ocp/tools-rtlsdr" {
     start(): void;
     stop(): void;
   }
+  export const CURATED_ONLINE_RECEIVERS: any[];
+  export function mergeReceiverFavorites(receivers: any[], favoriteIds?: string[]): any[];
+  export function filterReceivers(receivers: any[], filter?: any): any[];
+  export function probeReceiverUrl(url: string, timeoutMs?: number): Promise<"online" | "offline">;
+  export function probeAllReceivers(receivers: any[], onUpdate?: (id: string, status: string) => void): Promise<any[]>;
+  export function resolveListenUrl(receiver: any, opts?: { mobile?: boolean }): string;
 }
 
 declare module "@ocp/maps" {

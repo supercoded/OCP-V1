@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface WaterfallCanvasProps {
   magnitudes: Float32Array;
@@ -40,6 +40,24 @@ export function WaterfallCanvas({
 }: WaterfallCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const historyRef = useRef<Float32Array[]>([]);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+
+  // Keep-alive pages can mount while display:none (0×0). Redraw when visible.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const width = Math.floor(entry.contentRect.width);
+      const height = Math.floor(entry.contentRect.height);
+      setSize((prev) =>
+        prev.width === width && prev.height === height ? prev : { width, height }
+      );
+    });
+    ro.observe(canvas);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -47,17 +65,24 @@ export function WaterfallCanvas({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
+    // Prefer ResizeObserver size; fall back to layout box.
     const rect = canvas.getBoundingClientRect();
-    canvas.width = Math.floor(rect.width * dpr);
-    canvas.height = Math.floor(rect.height * dpr);
+    const width = size.width || Math.floor(rect.width);
+    const height = size.height || Math.floor(rect.height);
 
-    const width = rect.width;
-    const height = rect.height;
+    // Hidden keep-alive slots report 0 size — createImageData(0, …) throws.
+    if (width < 1 || height < 1) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+
     const bins = magnitudes.length;
-
-    historyRef.current = [magnitudes.slice(), ...historyRef.current].slice(0, maxRows);
+    if (bins > 0) {
+      historyRef.current = [magnitudes.slice(), ...historyRef.current].slice(0, maxRows);
+    }
     const history = historyRef.current;
+    if (!history.length) return;
 
     const imgData = ctx.createImageData(width, height);
     const data = imgData.data;
@@ -69,8 +94,10 @@ export function WaterfallCanvas({
       const y0 = height - (row + 1) * rowHeight;
       if (y0 < 0) continue;
       for (let x = 0; x < width; x++) {
-        const bin = Math.min(bins - 1, Math.floor((x / width) * bins));
-        const db = Math.max(minDb, Math.min(maxDb, mag[bin]));
+        const rowBins = mag.length;
+        const bin = rowBins > 0 ? Math.min(rowBins - 1, Math.floor((x / width) * rowBins)) : 0;
+        const sample = mag[bin] ?? minDb;
+        const db = Math.max(minDb, Math.min(maxDb, sample));
         const t = (db - minDb) / (maxDb - minDb);
         const { r, g, b } = waterfallColor(t);
         for (let dy = 0; dy < rowHeight; dy++) {
@@ -86,7 +113,7 @@ export function WaterfallCanvas({
     }
 
     ctx.putImageData(imgData, 0, 0);
-  }, [magnitudes, minDb, maxDb, maxRows]);
+  }, [magnitudes, minDb, maxDb, maxRows, size.width, size.height]);
 
   return <canvas ref={canvasRef} className={`w-full h-full ${className}`} />;
 }

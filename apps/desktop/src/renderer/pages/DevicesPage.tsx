@@ -8,20 +8,29 @@ import { useOcpService } from "../contexts/OcpServiceContext";
 
 export function DevicesPage() {
   const service = useOcpService();
-  const [tab, setTab] = useState<"connections" | "ruview" | "firmware" | "baofeng">("connections");
+  const devicesPrefs = service.preferences.pages.devices ?? {};
+  const [tab, setTab] = useState<"connections" | "ruview" | "firmware" | "baofeng">(
+    devicesPrefs.tab === "ruview" || devicesPrefs.tab === "firmware" || devicesPrefs.tab === "baofeng"
+      ? devicesPrefs.tab
+      : "connections"
+  );
 
   // Connection form state
-  const [auto, setAuto] = useState(true);
-  const [tcpHost, setTcpHost] = useState("10.0.0.100");
-  const [tcpPort, setTcpPort] = useState("4403");
-  const [serialPort, setSerialPort] = useState("/dev/ttyUSB0");
-  const [bleId, setBleId] = useState("");
+  const [auto, setAuto] = useState(devicesPrefs.auto !== false);
+  const [tcpHost, setTcpHost] = useState(devicesPrefs.tcpHost ?? "10.0.0.100");
+  const [tcpPort, setTcpPort] = useState(devicesPrefs.tcpPort ?? "4403");
+  const [serialPort, setSerialPort] = useState(devicesPrefs.serialPort ?? "/dev/ttyUSB0");
+  const [bleId, setBleId] = useState(devicesPrefs.bleId ?? "");
   const [connecting, setConnecting] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
 
   // RuView form state
-  const [ruviewHost, setRuviewHost] = useState("localhost");
-  const [ruviewPort, setRuviewPort] = useState("3001");
+  const [ruviewHost, setRuviewHost] = useState(devicesPrefs.ruviewHost ?? "localhost");
+  const [ruviewPort, setRuviewPort] = useState(devicesPrefs.ruviewPort ?? "3001");
+
+  const saveDevicesPrefs = (patch: Record<string, any>) => {
+    void service.updatePagePreferences("devices", patch);
+  };
 
   const onConnect = async () => {
     setConnecting(true);
@@ -64,7 +73,10 @@ export function DevicesPage() {
             <button
               key={t}
               type="button"
-              onClick={() => setTab(t)}
+              onClick={() => {
+                setTab(t);
+                saveDevicesPrefs({ tab: t });
+              }}
               className={[
                 "px-3 py-1.5 rounded border text-[10px] uppercase tracking-wider transition-all",
                 tab === t
@@ -95,15 +107,30 @@ export function DevicesPage() {
               />
             </div>
 
-            <AnalogToggle label="Auto-detect transport" checked={auto} onChange={setAuto} />
+            <AnalogToggle label="Auto-detect transport" checked={auto} onChange={(value) => {
+              setAuto(value);
+              saveDevicesPrefs({ auto: value });
+            }} />
 
             <div className="grid grid-cols-2 gap-4">
-              <TextField label="TCP Host" value={tcpHost} onChange={setTcpHost} placeholder="10.0.0.100" />
-              <TextField label="TCP Port" value={tcpPort} onChange={setTcpPort} placeholder="4403" />
+              <TextField label="TCP Host" value={tcpHost} onChange={(value) => {
+                setTcpHost(value);
+                saveDevicesPrefs({ tcpHost: value });
+              }} placeholder="10.0.0.100" />
+              <TextField label="TCP Port" value={tcpPort} onChange={(value) => {
+                setTcpPort(value);
+                saveDevicesPrefs({ tcpPort: value });
+              }} placeholder="4403" />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <TextField label="Serial Port" value={serialPort} onChange={setSerialPort} placeholder="/dev/ttyUSB0" />
-              <TextField label="BLE Device ID" value={bleId} onChange={setBleId} placeholder="aa:bb:cc:dd:ee:ff" />
+              <TextField label="Serial Port" value={serialPort} onChange={(value) => {
+                setSerialPort(value);
+                saveDevicesPrefs({ serialPort: value });
+              }} placeholder="/dev/ttyUSB0" />
+              <TextField label="BLE Device ID" value={bleId} onChange={(value) => {
+                setBleId(value);
+                saveDevicesPrefs({ bleId: value });
+              }} placeholder="aa:bb:cc:dd:ee:ff" />
             </div>
 
             <div className="flex gap-3">
@@ -137,8 +164,14 @@ export function DevicesPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <TextField label="Host" value={ruviewHost} onChange={setRuviewHost} placeholder="localhost" />
-              <TextField label="WebSocket Port" value={ruviewPort} onChange={setRuviewPort} placeholder="3001" />
+              <TextField label="Host" value={ruviewHost} onChange={(value) => {
+                setRuviewHost(value);
+                saveDevicesPrefs({ ruviewHost: value });
+              }} placeholder="localhost" />
+              <TextField label="WebSocket Port" value={ruviewPort} onChange={(value) => {
+                setRuviewPort(value);
+                saveDevicesPrefs({ ruviewPort: value });
+              }} placeholder="3001" />
             </div>
 
             <div className="text-[10px] text-ocp-dim leading-relaxed">
@@ -168,7 +201,7 @@ export function DevicesPage() {
         <div className="flex flex-col gap-4 max-w-2xl p-4 rounded-lg border border-ocp-border bg-ocp-panel">
           <span className="text-xs uppercase tracking-wider text-ocp-dim">Meshtastic Firmware Updater</span>
           <p className="text-xs text-ocp-dim leading-relaxed">
-            Use the CLI script to list releases, download assets, and flash firmware with external tools.
+            Firmware flashing is currently handled by CLI tools. This panel is a reference card, not an in-app flasher.
           </p>
           <code className="px-3 py-2 rounded bg-ocp-bg border border-ocp-border text-[10px] font-mono text-ocp-bright">
             npm run firmware:list
@@ -188,8 +221,10 @@ export function DevicesPage() {
           baofengDisconnect={service.baofengDisconnect}
           baofengReadChannels={service.baofengReadChannels}
           baofengWriteChannels={service.baofengWriteChannels}
+          baofengListPorts={service.baofengListPorts}
           baofengConnected={service.state.baofengConnected}
           baofengPortName={service.state.baofengPortName}
+          serialPorts={service.state.serialPorts}
         />
       )}
     </div>

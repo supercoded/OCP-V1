@@ -2,17 +2,21 @@ export function AnalogToggle({
   label,
   checked,
   onChange,
+  disabled = false,
 }: {
   label: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={() => onChange(!checked)}
       className={[
         "flex items-center gap-3 px-3 py-2 rounded-md border transition-all",
+        "disabled:opacity-40 disabled:cursor-not-allowed",
         checked
           ? "border-ocp-bright bg-ocp-panel-2 text-ocp-bright "
           : "border-ocp-border bg-ocp-panel text-ocp-dim hover:border-ocp-text-dim",

@@ -1,6 +1,12 @@
 export { BaofengProtocol } from "./baofengProtocol.js";
 export { BaofengTransport } from "./baofengTransport.js";
 export {
+  listSerialPorts,
+  scoreProgrammingCable,
+  pickBestProgrammingPort,
+} from "./serialPorts.js";
+export { shouldUseSerialBridge, createBridgeIo } from "./serialBridge.js";
+export {
   validateFrequency,
   validateChannel,
   createDefaultChannel,

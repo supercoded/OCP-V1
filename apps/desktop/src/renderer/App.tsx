@@ -1,4 +1,4 @@
-import { useState, Component, type ReactNode, type ErrorInfo } from "react";
+import { useCallback, useEffect, useRef, useState, Component, type ReactNode, type ErrorInfo } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { LockScreen } from "./components/LockScreen";
 import { SonarPage } from "./pages/SonarPage";
@@ -19,25 +19,18 @@ export type Workspace =
   | "map"
   | "settings";
 
-function WorkspacePage({ active }: { active: Workspace }) {
-  switch (active) {
-    case "sonar":
-      return <SonarPage />;
-    case "messaging":
-      return <MessagingPage />;
-    case "network":
-      return <NetworkPage />;
-    case "devices":
-      return <DevicesPage />;
-    case "spectrum":
-      return <SpectrumPage />;
-    case "map":
-      return <MapPage />;
-    case "settings":
-      return <SettingsPage />;
-    default:
-      return <SonarPage />;
-  }
+const WORKSPACES: Array<{ id: Workspace; label: string; page: ReactNode }> = [
+  { id: "sonar", label: "SONAR PPI", page: <SonarPage /> },
+  { id: "messaging", label: "MESSAGING", page: <MessagingPage /> },
+  { id: "network", label: "NETWORK", page: <NetworkPage /> },
+  { id: "devices", label: "DEVICES", page: <DevicesPage /> },
+  { id: "spectrum", label: "SPECTRUM", page: <SpectrumPage /> },
+  { id: "map", label: "MAP", page: <MapPage /> },
+  { id: "settings", label: "SETTINGS", page: <SettingsPage /> },
+];
+
+function isWorkspace(value: unknown): value is Workspace {
+  return WORKSPACES.some((workspace) => workspace.id === value);
 }
 
 class PageErrorBoundary extends Component<
@@ -79,26 +72,59 @@ class PageErrorBoundary extends Component<
 }
 
 export default function App() {
-  const [active, setActive] = useState<Workspace>("sonar");
   const service = useOcpService();
+  const [active, setActive] = useState<Workspace>(() =>
+    isWorkspace(service.preferences.lastWorkspace) ? service.preferences.lastWorkspace : "sonar"
+  );
+  const [hydratedWorkspace, setHydratedWorkspace] = useState(false);
+  const userChangedWorkspaceRef = useRef(false);
   const locked =
     !!service.state.security?.pinConfigured && !service.state.security?.unlocked;
+  const activeLabel = WORKSPACES.find((workspace) => workspace.id === active)?.label ?? "SONAR PPI";
+
+  useEffect(() => {
+    if (hydratedWorkspace) return;
+    if (userChangedWorkspaceRef.current) {
+      setHydratedWorkspace(true);
+      return;
+    }
+    if (isWorkspace(service.preferences.lastWorkspace)) {
+      setActive(service.preferences.lastWorkspace);
+    }
+    if (service.preferences.lastWorkspace !== undefined) {
+      setHydratedWorkspace(true);
+    }
+  }, [hydratedWorkspace, service.preferences.lastWorkspace]);
+
+  const handleWorkspaceChange = useCallback((workspace: Workspace) => {
+    userChangedWorkspaceRef.current = true;
+    setActive(workspace);
+    void service.updatePreferences({ lastWorkspace: workspace });
+  }, [service]);
+
+  useEffect(() => {
+    const api = (window as any).ocp;
+    if (!api?.resizeOnlineSession) return;
+    if (locked || active !== "spectrum") {
+      window.dispatchEvent(new Event("ocp:online-sdr:hide-bounds"));
+      void api.resizeOnlineSession({ x: 0, y: 0, width: 0, height: 0 });
+      return;
+    }
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new Event("ocp:online-sdr:restore-bounds"));
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [active, locked]);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-ocp-bg text-ocp-text font-mono relative">
       {locked ? <LockScreen /> : null}
-      <Sidebar active={active} onChange={setActive} />
+      <Sidebar active={active} onChange={handleWorkspaceChange} />
       <div className="flex flex-1 flex-col min-w-0">
         <header className="h-[32px] border-b border-ocp-border bg-ocp-panel flex items-center justify-between px-3 shrink-0">
           <div className="flex items-center gap-3">
             <span className="text-[11px] font-bold text-ocp-bright tracking-[1px] uppercase">
-              {active === "sonar" && "SONAR PPI"}
-              {active === "messaging" && "MESSAGING"}
-              {active === "network" && "NETWORK"}
-              {active === "devices" && "DEVICES"}
-              {active === "spectrum" && "SPECTRUM"}
-              {active === "map" && "MAP"}
-              {active === "settings" && "SETTINGS"}
+              {activeLabel}
             </span>
             <span className="flex items-center gap-[5px] text-[10px] text-ocp-dim">
               <span className="w-[6px] h-[6px] rounded-full bg-ocp-green" />
@@ -127,9 +153,23 @@ export default function App() {
         </header>
 
         <main className="flex-1 relative min-h-0 bg-ocp-bg">
-          <PageErrorBoundary label={active.toUpperCase()} key={active}>
-            <WorkspacePage active={active} />
-          </PageErrorBoundary>
+          {WORKSPACES.map((workspace) => {
+            const isActive = active === workspace.id;
+            return (
+              <section
+                key={workspace.id}
+                aria-hidden={!isActive}
+                className={[
+                  "absolute inset-0 min-h-0",
+                  isActive ? "block" : "hidden pointer-events-none",
+                ].join(" ")}
+              >
+                <PageErrorBoundary label={workspace.label}>
+                  {workspace.page}
+                </PageErrorBoundary>
+              </section>
+            );
+          })}
         </main>
 
         <footer className="h-[28px] border-t border-ocp-border bg-ocp-panel flex items-center justify-between px-3 text-[10px] text-ocp-muted font-mono tracking-wide shrink-0">

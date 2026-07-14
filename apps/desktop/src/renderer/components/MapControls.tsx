@@ -23,6 +23,8 @@ export interface MapControlsProps {
   onZoomOut: () => void;
   /** Whether offline tile server is active */
   tileServerActive: boolean;
+  /** Whether offline tile layer can be toggled */
+  canToggleOfflineTiles?: boolean;
   /** Number of nodes currently on map */
   nodeCount: number;
   /** Number of sensing targets on map */
@@ -39,6 +41,7 @@ export function MapControls({
   onZoomIn,
   onZoomOut,
   tileServerActive,
+  canToggleOfflineTiles = tileServerActive,
   nodeCount,
   sensingCount,
   status,
@@ -52,7 +55,7 @@ export function MapControls({
           Map Source
         </div>
         <AnalogButton onClick={onLoadFile} variant={tileServerActive ? "accent" : "default"}>
-          {tileServerActive ? "Offline Active" : "Load Tiles"}
+          {tileServerActive ? "Stop Offline Tiles" : "Load Tiles"}
         </AnalogButton>
         {tileServerActive && (
           <div className="flex items-center gap-1.5 text-[10px] text-ocp-bright font-mono">
@@ -88,7 +91,13 @@ export function MapControls({
           label="Offline Tiles"
           checked={layers.offlineTiles}
           onChange={(v) => onLayerChange({ ...layers, offlineTiles: v })}
+          disabled={!canToggleOfflineTiles}
         />
+        {!canToggleOfflineTiles && (
+          <div className="text-[10px] text-ocp-dim">
+            Load a tile file before enabling offline tiles.
+          </div>
+        )}
       </div>
 
       {/* Navigation */}

@@ -23,6 +23,13 @@ export interface OcpState {
   mapPort?: number;
   baofengConnected: boolean;
   baofengPortName?: string;
+  serialPorts?: Array<{
+    path: string;
+    manufacturer?: string;
+    vendorId?: string;
+    productId?: string;
+    friendlyName?: string;
+  }>;
   plugins?: Array<{
     id: string;
     name: string;
@@ -57,8 +64,52 @@ export interface SpectrumFrame {
   magnitudes: Float32Array;
 }
 
+export interface OnlineReceiver {
+  id: string;
+  name: string;
+  url: string;
+  mobileUrl?: string;
+  type: "websdr" | "kiwisdr" | "openwebrx" | "directory";
+  location?: string;
+  region?: string;
+  bands: string[];
+  capabilities: string[];
+  notes?: string;
+  embeddable?: boolean;
+  favorite?: boolean;
+  status?: string;
+}
+
+export interface SessionBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export type WorkspaceId =
+  | "sonar"
+  | "messaging"
+  | "network"
+  | "devices"
+  | "spectrum"
+  | "map"
+  | "settings";
+
+export interface AppPreferences {
+  lastWorkspace?: WorkspaceId;
+  pages: Partial<Record<WorkspaceId, Record<string, any>>>;
+}
+
+const DEFAULT_PREFERENCES: AppPreferences = {
+  pages: {},
+};
+
 interface OcpServiceAPI {
   state: OcpState;
+  preferences: AppPreferences;
+  updatePreferences: (patch: Partial<AppPreferences>) => Promise<{ ok: boolean; preferences?: AppPreferences; error?: string }>;
+  updatePagePreferences: (page: WorkspaceId, patch: Record<string, any>) => Promise<{ ok: boolean; preferences?: AppPreferences; error?: string }>;
   connect: (options: any) => Promise<{ ok: boolean; error?: string }>;
   disconnect: () => Promise<void>;
   startRuView: (cfg?: { host?: string; wsPort?: number }) => Promise<void>;
@@ -91,10 +142,16 @@ interface OcpServiceAPI {
   sendError?: string;
 
   // Baofeng IPC
-  baofengConnect: (portName: string) => Promise<{ ok: boolean; error?: string }>;
+  baofengConnect: (portName: string) => Promise<{ ok: boolean; error?: string; portName?: string }>;
   baofengDisconnect: () => Promise<{ ok: boolean }>;
   baofengReadChannels: () => Promise<{ ok: boolean; channels?: any[]; error?: string }>;
   baofengWriteChannels: (channels: any[]) => Promise<{ ok: boolean; error?: string }>;
+  baofengListPorts: () => Promise<{
+    ok: boolean;
+    ports?: any[];
+    best?: any;
+    error?: string;
+  }>;
 
   // Plugins
   activatePlugin: (id: string) => Promise<{ ok: boolean; error?: string }>;
@@ -108,6 +165,16 @@ interface OcpServiceAPI {
   lock: () => Promise<{ ok: boolean; error?: string }>;
   changePin: (params: { currentPin: string; newPin: string }) => Promise<{ ok: boolean; error?: string }>;
   clearPin: (pin: string) => Promise<{ ok: boolean; error?: string }>;
+
+  // Online SDR receivers
+  listOnlineReceivers: () => Promise<{ ok: boolean; receivers?: OnlineReceiver[]; lastReceiverId?: string; error?: string }>;
+  probeOnlineReceivers: () => Promise<{ ok: boolean; receivers?: OnlineReceiver[]; error?: string }>;
+  toggleOnlineFavorite: (id: string) => Promise<{ ok: boolean; favoriteIds?: string[]; receivers?: OnlineReceiver[]; error?: string }>;
+  openOnlineExternal: (url: string) => Promise<{ ok: boolean; error?: string }>;
+  openOnlineSession: (params: { receiverId: string; mobile?: boolean; bounds: SessionBounds }) =>
+    Promise<{ ok: boolean; external?: boolean; url?: string; receiverId?: string; name?: string; error?: string }>;
+  resizeOnlineSession: (bounds: SessionBounds) => Promise<{ ok: boolean; error?: string }>;
+  closeOnlineSession: () => Promise<{ ok: boolean; error?: string }>;
 }
 
 const OcpServiceContext = createContext<OcpServiceAPI | null>(null);
@@ -126,11 +193,17 @@ export function OcpServiceProvider({ children }: { children: ReactNode }) {
   const [rtlSpectrum, setRtlSpectrum] = useState<SpectrumFrame[]>([]);
   const [rtlError, setRtlError] = useState<string | undefined>(undefined);
   const [mapPort, setMapPort] = useState<number | undefined>(undefined);
+  const [preferences, setPreferences] = useState<AppPreferences>(DEFAULT_PREFERENCES);
 
   useEffect(() => {
     const api = (window as any).ocp;
     if (!api) return;
 
+    api.getPreferences?.().then((res: any) => {
+      if (res?.ok && res.preferences) {
+        setPreferences({ ...DEFAULT_PREFERENCES, ...res.preferences, pages: res.preferences.pages ?? {} });
+      }
+    });
     api.getState().then((s: OcpState) => setState(s));
     const unsubState = api.onState(setState);
     const unsubSensing = api.onRuViewSensing((s: RuViewSensing) => {
@@ -155,6 +228,26 @@ export function OcpServiceProvider({ children }: { children: ReactNode }) {
       unsubRtlSpectrum?.();
       unsubRtlError?.();
     };
+  }, []);
+
+  const updatePreferences = useCallback(async (patch: Partial<AppPreferences>) => {
+    const api = (window as any).ocp;
+    if (!api?.updatePreferences) return { ok: false, error: "OCP API not available" };
+    const result = await api.updatePreferences(patch);
+    if (result?.ok && result.preferences) {
+      setPreferences({ ...DEFAULT_PREFERENCES, ...result.preferences, pages: result.preferences.pages ?? {} });
+    }
+    return result;
+  }, []);
+
+  const updatePagePreferences = useCallback(async (page: WorkspaceId, patch: Record<string, any>) => {
+    const api = (window as any).ocp;
+    if (!api?.updatePagePreferences) return { ok: false, error: "OCP API not available" };
+    const result = await api.updatePagePreferences(page, patch);
+    if (result?.ok && result.preferences) {
+      setPreferences({ ...DEFAULT_PREFERENCES, ...result.preferences, pages: result.preferences.pages ?? {} });
+    }
+    return result;
   }, []);
 
   const connect = useCallback(async (options: any) => {
@@ -333,6 +426,12 @@ export function OcpServiceProvider({ children }: { children: ReactNode }) {
     return await api.baofengWriteChannels(channels);
   }, []);
 
+  const baofengListPorts = useCallback(async () => {
+    const api = (window as any).ocp;
+    if (!api?.baofengListPorts) return { ok: false, error: "OCP API not available", ports: [] };
+    return await api.baofengListPorts();
+  }, []);
+
   const [pluginStatuses, setPluginStatuses] = useState<any[]>([]);
 
   const refreshPluginStatus = useCallback(async () => {
@@ -393,10 +492,55 @@ export function OcpServiceProvider({ children }: { children: ReactNode }) {
     return await api.clearPin(pin);
   }, []);
 
+  const listOnlineReceivers = useCallback(async () => {
+    const api = (window as any).ocp;
+    if (!api?.listOnlineReceivers) return { ok: false, error: "OCP API not available", receivers: [] };
+    return await api.listOnlineReceivers();
+  }, []);
+
+  const probeOnlineReceivers = useCallback(async () => {
+    const api = (window as any).ocp;
+    if (!api?.probeOnlineReceivers) return { ok: false, error: "OCP API not available" };
+    return await api.probeOnlineReceivers();
+  }, []);
+
+  const toggleOnlineFavorite = useCallback(async (id: string) => {
+    const api = (window as any).ocp;
+    if (!api?.toggleOnlineFavorite) return { ok: false, error: "OCP API not available" };
+    return await api.toggleOnlineFavorite(id);
+  }, []);
+
+  const openOnlineExternal = useCallback(async (url: string) => {
+    const api = (window as any).ocp;
+    if (!api?.openOnlineExternal) return { ok: false, error: "OCP API not available" };
+    return await api.openOnlineExternal(url);
+  }, []);
+
+  const openOnlineSession = useCallback(async (params: { receiverId: string; mobile?: boolean; bounds: SessionBounds }) => {
+    const api = (window as any).ocp;
+    if (!api?.openOnlineSession) return { ok: false, error: "OCP API not available" };
+    return await api.openOnlineSession(params);
+  }, []);
+
+  const resizeOnlineSession = useCallback(async (bounds: SessionBounds) => {
+    const api = (window as any).ocp;
+    if (!api?.resizeOnlineSession) return { ok: false, error: "OCP API not available" };
+    return await api.resizeOnlineSession(bounds);
+  }, []);
+
+  const closeOnlineSession = useCallback(async () => {
+    const api = (window as any).ocp;
+    if (!api?.closeOnlineSession) return { ok: false, error: "OCP API not available" };
+    return await api.closeOnlineSession();
+  }, []);
+
   return (
     <OcpServiceContext.Provider
       value={{
         state,
+        preferences,
+        updatePreferences,
+        updatePagePreferences,
         connect,
         disconnect,
         startRuView,
@@ -429,6 +573,7 @@ export function OcpServiceProvider({ children }: { children: ReactNode }) {
       baofengDisconnect,
       baofengReadChannels,
       baofengWriteChannels,
+      baofengListPorts,
       // Plugins
       activatePlugin,
       deactivatePlugin,
@@ -440,6 +585,13 @@ export function OcpServiceProvider({ children }: { children: ReactNode }) {
       lock,
       changePin,
       clearPin,
+      listOnlineReceivers,
+      probeOnlineReceivers,
+      toggleOnlineFavorite,
+      openOnlineExternal,
+      openOnlineSession,
+      resizeOnlineSession,
+      closeOnlineSession,
     }}
     >
       {children}

@@ -6,11 +6,11 @@ export function SignalLegend({
   onToggle: (key: string) => void;
 }) {
   const items = [
-    { key: "meshtastic", label: "Meshtastic", color: "#4caf50" },
-    { key: "ruview", label: "RuView Presence", color: "#c62828" },
-    { key: "sdr", label: "RTL-SDR", color: "#4fc3f7" },
-    { key: "baofeng", label: "Baofeng", color: "#d4a017" },
-    { key: "mock", label: "Mock", color: "#888888" },
+    { key: "meshtastic", label: "Meshtastic", color: "#4caf50", available: true },
+    { key: "ruview", label: "RuView Presence", color: "#c62828", available: true },
+    { key: "mock", label: "Mock", color: "#888888", available: true },
+    { key: "sdr", label: "RTL-SDR (not mapped yet)", color: "#4fc3f7", available: false },
+    { key: "baofeng", label: "Baofeng (not mapped yet)", color: "#d4a017", available: false },
   ];
 
   return (
@@ -21,10 +21,14 @@ export function SignalLegend({
           <button
             key={item.key}
             type="button"
+            disabled={!item.available}
             onClick={() => onToggle(item.key)}
+            title={item.available ? undefined : "This source is not producing sonar blips yet"}
             className={[
               "flex items-center gap-2 px-3 py-1.5 rounded border text-[10px] uppercase tracking-wider transition-all",
-              active
+              !item.available
+                ? "border-ocp-border/40 bg-ocp-panel text-ocp-dim opacity-50 cursor-not-allowed"
+                : active
                 ? "border-ocp-border bg-ocp-panel-2 text-ocp-text"
                 : "border-ocp-border/50 bg-ocp-panel text-ocp-dim opacity-60",
             ].join(" ")}

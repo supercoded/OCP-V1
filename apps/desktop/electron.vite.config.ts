@@ -31,7 +31,7 @@ export default defineConfig({
       lib: {
         entry: resolve("src/preload.ts"),
         formats: ["es"],
-        fileName: () => "preload.js",
+        fileName: () => "preload.mjs",
       },
     },
   },
