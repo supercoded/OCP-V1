@@ -53,7 +53,7 @@ ipcMain.handle("ocp:ping", () => "pong");
 // File dialog for loading map tiles
 ipcMain.handle(
   "ocp:dialog:openFile",
-  async (_evt, opts: { title?: string; filters?: { name: string; extensions: string[] }[]; properties?: string[] }) => {
+  async (_evt, opts: { title?: string; filters?: { name: string; extensions: string[] }[]; properties?: Electron.OpenDialogOptions["properties"] }) => {
     const result = await dialog.showOpenDialog({
       title: opts?.title || "Open Map Tiles",
       filters: opts?.filters || [{ name: "Map Tiles", extensions: ["pmtiles", "mbtiles", "mvt"] }],
