@@ -1,19 +1,38 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
 android {
-    compileSdkVersion 34
     namespace "com.ocp.ocp_v1"
+    compileSdk flutter.compileSdkVersion
 
     defaultConfig {
         applicationId "com.ocp.ocp_v1"
-        minSdkVersion 21
-        targetSdkVersion 34
-        versionCode 1
-        versionName "0.1.0"
+        minSdk flutter.minSdkVersion
+        targetSdk flutter.targetSdkVersion
+        versionCode flutter.versionCode
+        versionName flutter.versionName
     }
 
     buildTypes {
         release {
             // TODO: Add signing config for release builds
-            minifyEnabled false
+            signingConfig signingConfigs.debug
         }
     }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+}
+
+flutter {
+    source '../..'
 }
