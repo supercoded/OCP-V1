@@ -94,7 +94,7 @@ class NetworkProvider extends ChangeNotifier {
   void _listenToPlatform() {
     if (_platformService == null) return;
 
-    _nodeSubscription = _platformService!.onNodeUpdate.listen((event) {
+    _nodeSubscription = _platformService.onNodeUpdate.listen((event) {
       final id = event['id']?.toString() ?? '';
       if (id.isEmpty) return;
 
@@ -114,7 +114,7 @@ class NetworkProvider extends ChangeNotifier {
       addNode(node);
     });
 
-    _stateSubscription = _platformService!.onStateChange.listen((event) {
+    _stateSubscription = _platformService.onStateChange.listen((event) {
       final connected = event['connected'] as bool?;
       final transport = event['transportKind'] as String?;
       if (connected != null) _connected = connected;

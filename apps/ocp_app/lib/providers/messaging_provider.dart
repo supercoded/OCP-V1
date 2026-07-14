@@ -71,7 +71,7 @@ class MessagingProvider extends ChangeNotifier {
   Future<void> _loadChannel() async {
     if (_storageService == null) return;
     try {
-      final ch = await _storageService!.getInt(StorageKeys.messagingChannel);
+      final ch = await _storageService.getInt(StorageKeys.messagingChannel);
       if (ch != null && ch >= 0 && ch < channels.length) {
         _selectedChannel = ch;
         debugPrint('[MessagingProvider] Loaded channel: $ch');
@@ -85,7 +85,7 @@ class MessagingProvider extends ChangeNotifier {
   Future<void> _saveChannel() async {
     if (_storageService == null) return;
     try {
-      await _storageService!.setInt(StorageKeys.messagingChannel, _selectedChannel);
+      await _storageService.setInt(StorageKeys.messagingChannel, _selectedChannel);
     } catch (e) {
       debugPrint('[MessagingProvider] Failed to save channel: $e');
     }
@@ -94,7 +94,7 @@ class MessagingProvider extends ChangeNotifier {
   void _listenToPlatform() {
     if (_platformService == null) return;
 
-    _messageSubscription = _platformService!.onMessageReceived.listen((event) {
+    _messageSubscription = _platformService.onMessageReceived.listen((event) {
       final msg = Message(
         id: event['id'] as int? ?? _nextId++,
         text: event['text'] as String? ?? '',
@@ -111,7 +111,7 @@ class MessagingProvider extends ChangeNotifier {
     });
 
     // Also listen to state changes to update connected status
-    _platformService!.onStateChange.listen((event) {
+    _platformService.onStateChange.listen((event) {
       final connected = event['connected'] as bool?;
       final transport = event['transportKind'] as String?;
       if (connected != null) _connected = connected;
@@ -179,7 +179,7 @@ class MessagingProvider extends ChangeNotifier {
     // Send via platform service
     if (_platformService != null) {
       try {
-        final success = await _platformService!.sendMessage({
+        final success = await _platformService.sendMessage({
           'text': text.trim(),
           'channel': channel,
           if (destinationNodeId != null) 'destinationNodeId': destinationNodeId,

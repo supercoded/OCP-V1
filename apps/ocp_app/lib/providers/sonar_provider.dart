@@ -26,11 +26,11 @@ class SonarProvider extends ChangeNotifier {
     if (_platformService == null) return;
 
     // Listen to RuView sensing events for proximity blips
-    _ruViewSubscription = _platformService!.onRuViewSensing.listen((event) {
+    _ruViewSubscription = _platformService.onRuViewSensing.listen((event) {
       final nodeId = event['nodeId']?.toString() ?? '';
       final x = (event['x'] as num?)?.toDouble() ?? 0.0;
       final y = (event['y'] as num?)?.toDouble() ?? 0.0;
-      final rssi = (event['rssi'] as num?)?.toDouble();
+      final _rssi = (event['rssi'] as num?)?.toDouble();
 
       // Convert RuView coordinates to a bearing/range
       final bearing = _xyToBearing(x, y);
@@ -47,7 +47,7 @@ class SonarProvider extends ChangeNotifier {
     });
 
     // Listen to node updates for mesh node blips
-    _nodeSubscription = _platformService!.onNodeUpdate.listen((event) {
+    _nodeSubscription = _platformService.onNodeUpdate.listen((event) {
       final id = event['id']?.toString() ?? '';
       final lat = (event['lat'] as num?)?.toDouble();
       final lon = (event['lon'] as num?)?.toDouble();

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:ocp_flutter_core/ocp_flutter_core.dart' show StorageService, StorageKeys;
+import 'package:ocp_flutter_core/ocp_flutter_core.dart' show StorageService;
 
 export 'package:ocp_flutter_core/ocp_flutter_core.dart' show StorageService, StorageKeys;
 

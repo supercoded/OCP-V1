@@ -110,7 +110,7 @@ class ConnectionProvider extends ChangeNotifier {
   void _listenToPlatform() {
     if (_platformService == null) return;
 
-    _stateSubscription = _platformService!.onStateChange.listen((event) {
+    _stateSubscription = _platformService.onStateChange.listen((event) {
       final connected = event['connected'] as bool?;
       final transportKind = event['transportKind'] as String?;
       final nodeCount = event['nodeCount'] as int?;
@@ -125,7 +125,7 @@ class ConnectionProvider extends ChangeNotifier {
       notifyListeners();
     });
 
-    _nodeSubscription = _platformService!.onNodeUpdate.listen((event) {
+    _nodeSubscription = _platformService.onNodeUpdate.listen((event) {
       final id = event['id']?.toString() ?? '';
       final name = event['shortName'] as String? ?? event['longName'] as String? ?? '';
       final status = event['role'] as String? ?? 'client';
@@ -174,7 +174,7 @@ class ConnectionProvider extends ChangeNotifier {
   Future<void> _loadRecentConnections() async {
     if (_storageService == null) return;
     try {
-      final list = await _storageService!.getJsonList(StorageKeys.recentConnections);
+      final list = await _storageService.getJsonList(StorageKeys.recentConnections);
       if (list != null) {
         _recentConnections.clear();
         _recentConnections.addAll(
@@ -192,7 +192,7 @@ class ConnectionProvider extends ChangeNotifier {
     if (_storageService == null) return;
     try {
       final list = _recentConnections.map((c) => c.toMap()).toList();
-      await _storageService!.setJsonList(StorageKeys.recentConnections, list);
+      await _storageService.setJsonList(StorageKeys.recentConnections, list);
     } catch (e) {
       debugPrint('[ConnectionProvider] Failed to save recent connections: $e');
     }
@@ -229,7 +229,7 @@ class ConnectionProvider extends ChangeNotifier {
 
     if (_platformService != null) {
       try {
-        final success = await _platformService!.connect({
+        final success = await _platformService.connect({
           if (options.tcpHost != null) 'tcpHost': options.tcpHost,
           if (options.tcpPort != null) 'tcpPort': options.tcpPort,
           if (options.serialPort != null) 'serialPort': options.serialPort,
@@ -273,7 +273,7 @@ class ConnectionProvider extends ChangeNotifier {
   Future<void> disconnect() async {
     if (_platformService != null) {
       try {
-        await _platformService!.disconnect();
+        await _platformService.disconnect();
       } catch (_) {}
     }
     _connected = false;
@@ -286,7 +286,7 @@ class ConnectionProvider extends ChangeNotifier {
   Future<void> connectRtl(RtlOptions options) async {
     if (_platformService != null) {
       try {
-        final success = await _platformService!.connectRtl({
+        final success = await _platformService.connectRtl({
           'host': options.host,
           'port': options.port,
           'centerFreqHz': options.centerFreqHz,
@@ -316,7 +316,7 @@ class ConnectionProvider extends ChangeNotifier {
   Future<void> disconnectRtl() async {
     if (_platformService != null) {
       try {
-        await _platformService!.disconnectRtl();
+        await _platformService.disconnectRtl();
       } catch (_) {}
     }
     _rtlConnected = false;
@@ -343,7 +343,7 @@ class ConnectionProvider extends ChangeNotifier {
   Future<void> startRuView({String host = 'localhost', int port = 3001}) async {
     if (_platformService != null) {
       try {
-        await _platformService!.startRuView({
+        await _platformService.startRuView({
           'host': host,
           'wsPort': port,
         });
@@ -366,7 +366,7 @@ class ConnectionProvider extends ChangeNotifier {
   Future<void> stopRuView() async {
     if (_platformService != null) {
       try {
-        await _platformService!.stopRuView();
+        await _platformService.stopRuView();
       } catch (_) {}
     }
     _ruViewConnected = false;

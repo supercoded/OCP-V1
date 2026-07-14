@@ -773,7 +773,7 @@ class SpectrumPainter extends CustomPainter {
 
     // Draw VFO indicator
     if (spectrum.showVfo && data.isNotEmpty) {
-      final binSize = spectrum.sampleRate / data.length;
+      final _binSize = spectrum.sampleRate / data.length;
       final startFreq = spectrum.centerFreqHz - spectrum.sampleRate / 2;
 
       final vfoCenterX = ((spectrum.vfoFreqHz - startFreq) / spectrum.sampleRate) * size.width;
@@ -798,7 +798,7 @@ class SpectrumPainter extends CustomPainter {
     }
 
     // Frequency labels at bottom
-    final labelPaint = Paint()..color = OcpColors.ocpTextMuted.withAlpha(128);
+    final _labelPaint = Paint()..color = OcpColors.ocpTextMuted.withAlpha(128);
     final freqTextStyle = TextStyle(color: OcpColors.ocpTextMuted, fontSize: 9, fontFamily: 'JetBrainsMono');
     for (int i = 0; i <= 4; i++) {
       final fraction = i / 4;

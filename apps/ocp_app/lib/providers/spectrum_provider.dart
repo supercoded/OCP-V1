@@ -91,7 +91,7 @@ class SpectrumProvider extends ChangeNotifier {
   Future<void> _loadBookmarks() async {
     if (_storageService == null) return;
     try {
-      final list = await _storageService!.getJsonList(StorageKeys.bookmarks);
+      final list = await _storageService.getJsonList(StorageKeys.bookmarks);
       if (list != null && list.isNotEmpty) {
         _bookmarks
           ..clear()
@@ -118,7 +118,7 @@ class SpectrumProvider extends ChangeNotifier {
             'bandwidth': b.bandwidth,
             'modulation': b.modulation,
           }).toList();
-      await _storageService!.setJsonList(StorageKeys.bookmarks, list);
+      await _storageService.setJsonList(StorageKeys.bookmarks, list);
       debugPrint('[SpectrumProvider] Saved ${_bookmarks.length} bookmarks');
     } catch (e) {
       debugPrint('[SpectrumProvider] Failed to save bookmarks: $e');
@@ -128,7 +128,7 @@ class SpectrumProvider extends ChangeNotifier {
   void _listenToPlatform() {
     if (_platformService == null) return;
 
-    _rtlSubscription = _platformService!.onRtlSpectrum.listen((event) {
+    _rtlSubscription = _platformService.onRtlSpectrum.listen((event) {
       final centerFreq = (event['centerFreq'] as num?)?.toDouble() ?? _centerFreqHz;
       final sampleRate = (event['sampleRate'] as num?)?.toDouble() ?? _sampleRate;
       final fft = (event['fftSize'] as num?)?.toInt() ?? _fftSize;
